@@ -17,18 +17,23 @@ class KalmanState:
 class DroneEKF:
     """
     Extended Kalman Filter fusing IMU, GPS, Baro, OpticalFlow, Mag.
+
+    Goal is to best estimate the position, velocity, and orientation of the drone by:
+        1. Use IMU readings to predict the next state based on physics/kinematics (i.e., given acceleration and gyro, where do I think the drone moved)
+        2. With new sensor measurements, how should I correct my prediction/guess from the step before
     """
 
-    # Process noise standard deviations
-    _Q_POS_STD   = 0.01    # m
-    _Q_VEL_STD   = 0.05    # m/s
-    _Q_ATT_STD   = 0.005   # rad
+    # Process noise standard deviations - amount of uncertainty added per prediction step
+    # Noise can be measurement based (i.e., GPS error) or general noise (i.e., vibrations, wind gusts, unmodelled aerodynamics)
+    _Q_POS_STD   = 0.01    # m (~1 cm of uncertainty in positioning)
+    _Q_VEL_STD   = 0.05    # m/s (~5 cm/s of uncertainty in velocity, which is reasonable for a small drone with good IMU)
+    _Q_ATT_STD   = 0.005   # rad (~0.3 degrees of uncertainty in attitude, which is reasonable for a small drone with good IMU)
 
     def __init__(self):
         # Initial state: drone at origin, stationary
         self.state = KalmanState(
-            x=np.zeros(STATE_DIM),
-            P=np.eye(STATE_DIM) * 1.0,
+            x=np.zeros(STATE_DIM), # Current state vector: [px, py, pz, vx, vy, vz, roll, pitch, yaw]
+            P=np.eye(STATE_DIM) * 1.0, # Covariance matrix; the amount of uncertainty in the estimate
         )
         self._build_Q()
 
@@ -37,10 +42,10 @@ class DroneEKF:
         """Creates process noise covariance matrix Q based on standard deviations."""
         """Tells filter how much confidence it should lose in mathematical predictions over time due to vibrations, IMU drift and unmodeled physics."""
         q = np.zeros(STATE_DIM)
-        q[0:3] = self._Q_POS_STD**2
-        q[3:6] = self._Q_VEL_STD**2
-        q[6:9] = self._Q_ATT_STD**2
-        self.Q = np.diag(q)
+        q[0:3] = self._Q_POS_STD**2 # uncertainty for x, y, z
+        q[3:6] = self._Q_VEL_STD**2 # uncertainty for vx, vy, vz
+        q[6:9] = self._Q_ATT_STD**2 # uncertainty for roll, pitch, yaw
+        self.Q = np.diag(q) # Diagonalize to create covariance matrix where each state variable's noise is independent of the others
 
     def _state_transition(self, x: np.ndarray, dt: float,
                           accel: np.ndarray, gyro: np.ndarray) -> np.ndarray:
@@ -50,20 +55,30 @@ class DroneEKF:
         roll, pitch, yaw = x[6], x[7], x[8]
 
         # Convert body-frame accelerations to world-frame using current attitude
+        '''
+        Note that when an accelerometer measures a drone's acceleration, it is relative to the drone frame. This doesn't necessarily
+        align with the world frame, because as a drone moves, it tilts to achieve aerodynamic stability. As a result of this, we have
+        to use trig to find the x and y components of acceleration (using the vehicle attitude).
+        '''
         cr, sr = np.cos(roll), np.sin(roll)
         cp, sp = np.cos(pitch), np.sin(pitch)
         cy, sy = np.cos(yaw), np.sin(yaw)
         
-        # Construct DCM (ZYX rotation matrix) to convert body-frame acceleration to world-frame
+        # Construct DCM (ZYX rotation matrix) to convert body-frame acceleration to world-frame (direct cosine matrix for a ZYX Euler-angle rotation)
         R = np.array([
             [cy*cp, cy*sp*sr - sy*cr, cy*sp*cr + sy*sr],
             [sy*cp, sy*sp*sr + cy*cr, sy*sp*cr - cy*sr],
             [-sp,   cp*sr,            cp*cr           ]
         ])
-        g = np.array([0, 0, -9.81]) # gravity vector in world frame
+        g = np.array([0, 0, -9.81]) # Gravity vector in world frame (only in the z-axis; up and down)
         acc_world = R @ accel + g # total acceleration in world frame (including gravity)
 
         # Update state using kinematics equations
+        '''
+        new_position = old_position + velocity * dt + 0.5 * acceleration * dt^2)
+        new_velocity = old_velocity + acceleration * dt
+        new_attitude = old_attitude + angular_rate * dt 
+        '''
         x_new = np.array([
             px + vx*dt + 0.5*acc_world[0]*dt**2,
             py + vy*dt + 0.5*acc_world[1]*dt**2,
@@ -78,12 +93,20 @@ class DroneEKF:
         return x_new
 
     def _jacobian_F(self, x: np.ndarray, dt: float) -> np.ndarray:
-        """Calculates jacobian of state transition function. This is used to linearize the non-linear result from _state_transition."""
+        """
+        Calculates jacobian of state transition function. This is used to linearize the non-linear result from _state_transition.
+        Mathematically, this is like taking a tangent to a curved surface. It's a local linear approximation around the current state estimate since Kalman filters only work linearly.
+        
+        This also tells us how sensitive the next state is to each current state variable. 
+        For example, if we have a high velocity in the x direction, then our position in the x direction will be more sensitive to errors in that velocity estimate.
+        
+        Also note that this is a simplified EKF Jacobian. One that is more complex would have things like velocity relying on vehicle attitude and acceleration (i.e., roll) and angular rates.
+        """
         F = np.eye(STATE_DIM) # 9x9 identity matrix that signifies that each state depends on it's previous value
         # Add simple kinematics dependency (position depends on velocity)
-        F[0, 3] = dt
-        F[1, 4] = dt
-        F[2, 5] = dt
+        F[0, 3] = dt # position x depends on velocity x
+        F[1, 4] = dt # position y depends on velocity y
+        F[2, 5] = dt # position z depends on velocity z
         return F
 
     # Prediction and update functions for EKF

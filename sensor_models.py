@@ -6,10 +6,15 @@ realistic noise characteristics and update rates.
 import numpy as np
 from dataclasses import dataclass
 
+# Note that all angular rates are in rads/s, angles in radians, and positions in metres.
 
 @dataclass
 class SensorReading:
-    """Generic container for a sensor reading with timestamp."""
+    """
+    Generic container for a sensor reading with timestamp.
+    Contains "IMU", "GPS", "BARO", "OPFLOW", or "MAG" as sensor_id, the timestamp of the reading, the data as a numpy array, and the noise standard deviation for that sensor.
+    """
+
     sensor_id: str
     timestamp: float          # seconds
     data: np.ndarray
@@ -57,6 +62,11 @@ class GPSSensor:
     """
     GPS receiver — low rate (10 Hz).
     Outputs: [x, y, z] metres
+    
+    Additional notes:
+        - x: horizontal position along the east-west axis
+        - y: horizontal position along the north-south axis
+        - z: altitude (above the reference frame - i.e., above ground level (AGL), mean sea level (MSL), etc.)
     """
     UPDATE_RATE_HZ = 10
     POS_NOISE_STD  = 0.5      # metres
@@ -109,12 +119,12 @@ class OpticalFlowSensor:
 class MagnetometerSensor:
     """
     Magnetometer — medium rate (100 Hz).
-    Outputs: [mx, my, mz] normalised magnetic field
+    Outputs: [mx, my, mz] normalized magnetic field
     """
     UPDATE_RATE_HZ = 100
     MAG_NOISE_STD  = 0.02
 
-    # Earth field reference (normalised)
+    # Earth field reference (normalized)
     EARTH_FIELD = np.array([0.22, 0.0, 0.97])
 
     def __init__(self, rng: np.random.Generator):
@@ -143,15 +153,15 @@ def generate_trajectory(duration_s: float, dt: float) -> list[DroneGroundTruth]:
     omega = 0.3   # rad/s figure-8 frequency
 
     for t in times:
-        x  =  10.0 * np.sin(omega * t)
-        y  =  10.0 * np.sin(2 * omega * t) / 2
-        z  =  5.0  + 2.0 * np.sin(0.1 * t)
-        vx =  10.0 * omega * np.cos(omega * t)
-        vy =  10.0 * omega * np.cos(2 * omega * t)
-        vz =  2.0  * 0.1   * np.cos(0.1 * t)
-        ax = -10.0 * omega**2 * np.sin(omega * t)
-        ay = -20.0 * omega**2 * np.sin(2 * omega * t)
-        az = -2.0  * 0.01     * np.sin(0.1 * t)
+        x  =  10.0 * np.sin(omega * t) # Will cause the drone to move side to side
+        y  =  10.0 * np.sin(2 * omega * t) / 2 # Will cause the drone to move up and down
+        z  =  5.0  + 2.0 * np.sin(0.1 * t) # Will cause the drone to climb and descend
+        vx =  10.0 * omega * np.cos(omega * t) # Velocity in the x axis
+        vy =  10.0 * omega * np.cos(2 * omega * t) # Velocity in the y axis
+        vz =  2.0  * 0.1   * np.cos(0.1 * t) # Velocity in the z axis
+        ax = -10.0 * omega**2 * np.sin(omega * t) # Acceleration in the x axis
+        ay = -20.0 * omega**2 * np.sin(2 * omega * t) # Acceleration in the y axis
+        az = -2.0  * 0.01     * np.sin(0.1 * t) # Acceleration in the z axis
         roll  = 0.1 * np.sin(omega * t)
         pitch = 0.1 * np.cos(omega * t)
         yaw   = np.arctan2(vy, vx)
