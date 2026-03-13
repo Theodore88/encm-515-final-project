@@ -150,7 +150,7 @@ class PipelineMetrics:
         elapsed_us = (time.perf_counter() - wall_time_start) * 1e6
         self.latencies_us.append(elapsed_us)
         self.update_count += 1
-        if self.last_update_t >= 0 and (sim_time - self.last_update_t) > (1.0 / _EXPECTED_RATES_MAP.get(self.sensor_id, 100)) * 1.5: # Check if time since last updates is longer than 1.5x expected interval, if so then count as stall
+        if self.last_update_t >= 0 and (sim_time - self.last_update_t) > (1.0 / EXPECTED_RATES_MAP.get(self.sensor_id, 100)) * 1.5: # Check if time since last updates is longer than 1.5x expected interval, if so then count as stall
             self.stall_cycles += 1
         self.last_update_t = sim_time
 
@@ -169,4 +169,4 @@ class PipelineMetrics:
         return self.update_count / total_s if total_s > 0 else 0.0
 
 
-_EXPECTED_RATES_MAP = {"IMU": 400, "GPS": 10, "BARO": 50, "OPFLOW": 100, "MAG": 100}
+EXPECTED_RATES_MAP = {"IMU": 400, "GPS": 10, "BARO": 50, "OPFLOW": 100, "MAG": 100} # Expected update rates for each sensor stream

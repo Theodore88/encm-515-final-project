@@ -1,4 +1,6 @@
 """
+pipeline_analysis.py
+--------------------
 Computes and reports pipeline characteristics:
   - Initiation Interval (II) per sensor stream
   - Latency distribution (mean, max, p99)
@@ -10,7 +12,10 @@ Computes and reports pipeline characteristics:
 
 import numpy as np
 from dataflow_simulator import SimulationResult, TICK_COST, CLOCK_MHZ
-from kalman_filter import _EXPECTED_RATES_MAP
+from kalman_filter import EXPECTED_RATES_MAP
+
+
+# ---------------------------------------------------------------------------
 
 def compute_initiation_interval(sensor_id: str) -> dict:
     """
@@ -18,10 +23,10 @@ def compute_initiation_interval(sensor_id: str) -> dict:
     Maximum throughput = 1/II updates per second.
     """
     ticks = TICK_COST[sensor_id]
-    ii_us  = ticks / CLOCK_MHZ            # Time in microseconds to process one update for this sensor
-    max_tput = 1.0 / (ii_us * 1e-6)       # Calculate throughput in Hz based on II
-    nominal_rate = _EXPECTED_RATES_MAP[sensor_id] # Expected update rate for this sensor type
-    utilisation = (nominal_rate / max_tput) * 100 # Utilisation percentage based on nominal rate vs max throughput
+    ii_us  = ticks / CLOCK_MHZ            # microseconds
+    max_tput = 1.0 / (ii_us * 1e-6)       # Hz
+    nominal_rate = EXPECTED_RATES_MAP[sensor_id]
+    utilisation = (nominal_rate / max_tput) * 100
     return {
         "sensor": sensor_id,
         "tick_cost": ticks,
@@ -45,17 +50,19 @@ def latency_stats(latencies_us: list) -> dict:
 
 def analyse(result: SimulationResult) -> dict:
     """
-    Returns a dict ready to print full analysis of pipeline.
+    Full pipeline analysis.  Returns a structured dict ready for printing
+    or downstream use.
     """
     report = {}
 
+    # ---- Pipeline characteristics per sensor ----
     report["pipeline"] = {}
-    for sensor_id in _EXPECTED_RATES_MAP:
-        metrics = result.pipeline_metrics[sensor_id]
-        ii_info = compute_initiation_interval(sensor_id)
+    for sid in EXPECTED_RATES_MAP:
+        metrics = result.pipeline_metrics[sid]
+        ii_info = compute_initiation_interval(sid)
         lat_info = (latency_stats(metrics.latencies_us)
                     if metrics.latencies_us else {})
-        report["pipeline"][sensor_id] = {
+        report["pipeline"][sid] = {
             **ii_info,
             "actual_updates": metrics.update_count,
             "structural_hazards": metrics.stall_cycles,
@@ -76,16 +83,38 @@ def analyse(result: SimulationResult) -> dict:
         "vel_max_err_ms":  float(np.max(vel_arr)),
     }
 
-    # ---- Hazard summary ----
+    # Hazard summary 
+    total_updates = (result.total_imu_updates + result.total_gps_updates +
+                     result.total_baro_updates + result.total_opflow_updates +
+                     result.total_mag_updates)
+    total_hazards = result.n_structural + result.n_raw
+
+    # Per-sensor hazard breakdown from packet list
+    per_sensor_hazards = {sid: {"structural": 0, "raw": 0}
+                          for sid in EXPECTED_RATES_MAP}
+    for pkt in result.packets:
+        d = per_sensor_hazards[pkt.sensor_id]
+        if pkt.structural_hazard: d["structural"] += 1
+        if pkt.raw_hazard:        d["raw"]        += 1
+
+    # Stall tick budget per sensor
+    stall_budgets = {}
+    for sid in EXPECTED_RATES_MAP:
+        pkts = [p for p in result.packets if p.sensor_id == sid]
+        stall_budgets[sid] = {
+            "mean_stall_ticks": float(np.mean([p.stall_ticks for p in pkts])) if pkts else 0,
+            "max_stall_ticks":  float(np.max ([p.stall_ticks for p in pkts])) if pkts else 0,
+            "total_stall_ticks": int(sum(p.stall_ticks for p in pkts)),
+        }
+
     report["hazards"] = {
-        "total_hazards": result.total_hazards,
-        "total_updates": (result.total_imu_updates + result.total_gps_updates +
-                          result.total_baro_updates + result.total_opflow_updates +
-                          result.total_mag_updates),
-        "overall_hazard_rate_pct": (result.total_hazards /
-            max(result.total_imu_updates + result.total_gps_updates +
-                result.total_baro_updates + result.total_opflow_updates +
-                result.total_mag_updates, 1)) * 100,
+        "n_structural": result.n_structural,
+        "n_raw":        result.n_raw,
+        "total_hazards": total_hazards,
+        "total_updates": total_updates,
+        "overall_hazard_rate_pct": (total_hazards / max(total_updates, 1)) * 100,
+        "per_sensor": per_sensor_hazards,
+        "stall_budgets": stall_budgets,
     }
 
     # ---- Aggregate throughput ----
@@ -156,12 +185,29 @@ def print_report(report: dict):
     print()
 
     # ---- Hazards ----
-    print("[4] Structural HAZARD ANALYSIS")
+    print("[4] HAZARD ANALYSIS")
     print("-" * 72)
     hz = report["hazards"]
-    print(f"  Total hazard events   : {hz['total_hazards']}")
-    print(f"  Overall hazard rate   : {hz['overall_hazard_rate_pct']:.2f}%")
-    print(f"  (Hazard = new packet arrives while core busy → stall inserted)")
+    print(f"  {'Hazard type':<22} {'Count':>8}  Description")
+    print(f"  {'-'*21:<22} {'-'*7:>8}  {'-'*38}")
+    print(f"  {'Structural':<22} {hz['n_structural']:>8}  "
+          f"Two packets contend for EXECUTE unit")
+    print(f"  {'RAW (read-after-write)':<22} {hz['n_raw']:>8}  "
+          f"EXECUTE reads stale P (prior WB not done)")
+    print(f"  {'─'*21:<22} {'─'*7:>8}")
+    print(f"  {'Total':<22} {hz['total_hazards']:>8}  "
+          f"({hz['overall_hazard_rate_pct']:.1f}% of all updates)")
+    print()
+    print(f"  Per-sensor breakdown:")
+    print(f"  {'Sensor':<8} {'Structural':>12} {'RAW':>8} "
+          f"{'MeanStall(µs)':>14} {'MaxStall(µs)':>13}")
+    print(f"  {'-'*7:<8} {'-'*11:>12} {'-'*7:>8} {'-'*7:>8} "
+          f"{'-'*13:>14} {'-'*12:>13}")
+    for sid in EXPECTED_RATES_MAP:
+        ps = hz["per_sensor"][sid]
+        sb = hz["stall_budgets"][sid]
+        print(f"  {sid:<8} {ps['structural']:>12} {ps['raw']:>8} "
+              f"{sb['mean_stall_ticks']:>14.1f} {sb['max_stall_ticks']:>13.0f}")
     print()
 
     # ---- Accuracy ----

@@ -24,8 +24,8 @@ import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
 from collections import defaultdict
 
-from dataflow_simulator import SimulationResult, TICK_COST
-from kalman_filter import _EXPECTED_RATES_MAP
+from dataflow_simulator import SimulationResult, TICK_COST, TICKS_EXECUTE, TICKS_WRITEBACK
+from kalman_filter import EXPECTED_RATES_MAP
 from pipeline_analysis import analyse
 
 
@@ -70,7 +70,7 @@ def plot_sensor_streams(result: SimulationResult, out: str):
     ax.plot(times_truth, truth_acc, color=COLOURS["truth"], lw=1.2, ls="--",
             label="Truth |a|")
     ax.set_ylabel("|Accel| (m/s²)")
-    ax.set_title(f"IMU  ({_EXPECTED_RATES_MAP['IMU']} Hz)")
+    ax.set_title(f"IMU  ({EXPECTED_RATES_MAP['IMU']} Hz)")
     ax.legend(fontsize=8)
 
     # GPS position x, y, z
@@ -83,7 +83,7 @@ def plot_sensor_streams(result: SimulationResult, out: str):
     ax.plot(times_truth, truth_pos_x, color=COLOURS["truth"], lw=1.0, ls="--",
             label="Truth x")
     ax.set_ylabel("Position (m)")
-    ax.set_title(f"GPS  ({_EXPECTED_RATES_MAP['GPS']} Hz)")
+    ax.set_title(f"GPS  ({EXPECTED_RATES_MAP['GPS']} Hz)")
     ax.legend(fontsize=7, ncol=4)
 
     # Barometer altitude
@@ -95,7 +95,7 @@ def plot_sensor_streams(result: SimulationResult, out: str):
     ax.plot(times_truth, truth_alt, color=COLOURS["truth"], lw=1.2, ls="--",
             label="Truth z")
     ax.set_ylabel("Altitude (m)")
-    ax.set_title(f"Barometer  ({_EXPECTED_RATES_MAP['BARO']} Hz)")
+    ax.set_title(f"Barometer  ({EXPECTED_RATES_MAP['BARO']} Hz)")
     ax.legend(fontsize=8)
 
     # Optical flow vx, vy
@@ -109,7 +109,7 @@ def plot_sensor_streams(result: SimulationResult, out: str):
     ax.plot(times_truth, truth_vx, color=COLOURS["truth"], lw=1.0, ls="--",
             label="Truth vx")
     ax.set_ylabel("Vel (m/s)")
-    ax.set_title(f"Optical Flow  ({_EXPECTED_RATES_MAP['OPFLOW']} Hz)")
+    ax.set_title(f"Optical Flow  ({EXPECTED_RATES_MAP['OPFLOW']} Hz)")
     ax.legend(fontsize=7, ncol=3)
 
     # Magnetometer magnitude
@@ -118,7 +118,7 @@ def plot_sensor_streams(result: SimulationResult, out: str):
     mag_mags = [np.linalg.norm(r.data) for r in result.sensor_readings["MAG"]]
     ax.plot(mag_t, mag_mags, color=COLOURS["MAG"], lw=0.8)
     ax.set_ylabel("|B| (norm)")
-    ax.set_title(f"Magnetometer  ({_EXPECTED_RATES_MAP['MAG']} Hz)")
+    ax.set_title(f"Magnetometer  ({EXPECTED_RATES_MAP['MAG']} Hz)")
     ax.set_xlabel("Time (s)")
 
     plt.tight_layout()
@@ -191,63 +191,68 @@ def plot_estimation_error(result: SimulationResult, out: str):
 
 def plot_pipeline_gantt(result: SimulationResult, out: str):
     """
-    Show the first N ms of pipeline scheduling as a Gantt chart,
-    illustrating when each sensor update occupies the fusion core
-    and where hazards (stalls) occur.
+    Show the first 50 ms of pipeline scheduling as a Gantt chart.
+    Each bar spans [tick_execute, tick_done] for that packet.
+    Hazard annotations mark which hazard type caused a stall.
     """
-    SHOW_S   = 0.05      # show first 50 ms
-    CLOCK_MHZ = 1.0
-    TICK_US = 1.0 / CLOCK_MHZ
+    SHOW_US = 50_000   # first 50 ms in ticks (1 tick = 1 µs)
 
-    # Rebuild schedule for first SHOW_S seconds
     sensors_order = ["IMU", "GPS", "BARO", "OPFLOW", "MAG"]
-    dt = result.sim_dt
-    n_steps = int(SHOW_S / dt)
-    ticks_per_step = int(CLOCK_MHZ * 1e6 * dt)
-
-    from dataflow_simulator import TICK_COST
-    core_busy_until = 0
-    events = []        # (sensor, start_tick, duration, hazard)
-
-    for step in range(n_steps):
-        current_tick = step * ticks_per_step
-        for sid in sensors_order:
-            rate = _EXPECTED_RATES_MAP[sid]
-            ratio = int(400 / rate)
-            if step % ratio != 0:
-                continue
-            hazard = current_tick < core_busy_until
-            start  = max(current_tick, core_busy_until)
-            dur    = TICK_COST[sid]
-            core_busy_until = start + dur
-            events.append((sid, start * TICK_US, dur * TICK_US, hazard))
-
-    fig, ax = plt.subplots(figsize=(14, 5))
-    ax.set_title(f"Pipeline Timing Diagram — Fusion Core (first {SHOW_S*1000:.0f} ms)")
-
     y_pos = {s: i for i, s in enumerate(sensors_order)}
     bar_h = 0.6
 
-    for (sid, start_us, dur_us, hazard) in events:
-        y = y_pos[sid]
-        colour = COLOURS[sid]
-        edge   = "red" if hazard else colour
-        lw     = 2.0  if hazard else 0.5
-        ax.barh(y, dur_us, left=start_us, height=bar_h,
-                color=colour, edgecolor=edge, linewidth=lw, alpha=0.85)
-        if hazard:
-            ax.annotate("STALL", xy=(start_us, y + bar_h/2),
-                        fontsize=6, color="red", va="center")
+    visible = [p for p in result.packets if p.tick_fetch < SHOW_US]
+
+    fig, ax = plt.subplots(figsize=(14, 5))
+    ax.set_title(f"Pipeline Timing Diagram — Fusion Core (first 50 ms)")
+
+    for pkt in visible:
+        y      = y_pos.get(pkt.sensor_id, 0)
+        colour = COLOURS[pkt.sensor_id]
+
+        # FETCH+DECODE bar (light shade)
+        fd_dur = pkt.tick_execute - pkt.tick_fetch
+        if fd_dur > 0:
+            ax.barh(y, fd_dur, left=pkt.tick_fetch, height=bar_h,
+                    color=colour, alpha=0.25, edgecolor="none")
+
+        # EXECUTE bar (full colour)
+        exe_dur = TICKS_EXECUTE[pkt.sensor_id]
+        ax.barh(y, exe_dur, left=pkt.tick_execute, height=bar_h,
+                color=colour, edgecolor="k", linewidth=0.4, alpha=0.9)
+
+        # WRITEBACK bar (dark)
+        ax.barh(y, TICKS_WRITEBACK, left=pkt.tick_writeback, height=bar_h,
+                color=colour, edgecolor="k", linewidth=0.4, alpha=0.5)
+
+        # Hazard annotation
+        if pkt.structural_hazard or pkt.raw_hazard:
+            labels = []
+            if pkt.structural_hazard: labels.append("S")
+            if pkt.raw_hazard:        labels.append("R")
+            tag = "/".join(labels)
+            ax.annotate(tag,
+                        xy=(pkt.tick_execute, y + bar_h/2),
+                        xytext=(2, 0), textcoords="offset points",
+                        fontsize=6, color="red", va="center", fontweight="bold")
 
     ax.set_yticks(list(y_pos.values()))
     ax.set_yticklabels(list(y_pos.keys()))
     ax.set_xlabel("Time (µs)")
-    ax.set_xlim(0, SHOW_S * 1e6)
+    ax.set_xlim(0, SHOW_US)
     ax.grid(axis="x", ls=":", alpha=0.4)
 
-    patches = [mpatches.Patch(color=COLOURS[s], label=s) for s in sensors_order]
-    patches.append(mpatches.Patch(color="red", label="Structural Hazard"))
-    ax.legend(handles=patches, fontsize=8, loc="upper right")
+    sensor_patches = [mpatches.Patch(color=COLOURS[s], label=s)
+                      for s in sensors_order]
+    stage_patches  = [
+        mpatches.Patch(color="grey", alpha=0.25, label="FETCH+DECODE"),
+        mpatches.Patch(color="grey", alpha=0.9,  label="EXECUTE"),
+        mpatches.Patch(color="grey", alpha=0.5,  label="WRITEBACK"),
+        mpatches.Patch(color="white", edgecolor="red",
+                       label="S=Structural  R=RAW"),
+    ]
+    ax.legend(handles=sensor_patches + stage_patches,
+              fontsize=7, loc="upper right", ncol=3)
 
     plt.tight_layout()
     _savefig(fig, out)
@@ -258,39 +263,45 @@ def plot_pipeline_gantt(result: SimulationResult, out: str):
 # ---------------------------------------------------------------------------
 
 def plot_hazard_distribution(result: SimulationResult, out: str):
-    if not result.hazard_log:
-        print("  No hazards to plot.")
+    if not result.packets:
+        print("  No packets to plot.")
         return
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-    fig.suptitle("Structural Hazard Analysis")
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+    fig.suptitle("Pipeline Hazard Analysis — Structural, RAW", fontsize=13)
 
-    # By sensor
-    hazard_counts = defaultdict(int)
-    for h in result.hazard_log:
-        hazard_counts[h["sensor"]] += 1
-    sids  = list(hazard_counts.keys())
-    cnts  = [hazard_counts[s] for s in sids]
-    bars  = ax1.bar(sids, cnts, color=[COLOURS.get(s, "#888") for s in sids])
-    ax1.set_xlabel("Sensor"); ax1.set_ylabel("Hazard Count")
-    ax1.set_title("Hazards per Sensor Stream")
-    for bar, cnt in zip(bars, cnts):
-        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                 str(cnt), ha="center", va="bottom", fontsize=9)
+    hazard_types = [
+        ("structural_hazard", "Structural\n(EXECUTE contention)", "#E63946"),
+        ("raw_hazard",        "RAW\n(stale P read)",              "#457B9D"),
+    ]
 
-    # Stall duration histogram (per sensor that had stalls)
-    stall_ticks = defaultdict(list)
-    for h in result.hazard_log:
-        stall_ticks[h["sensor"]].append(h.get("stall_ticks", 0))
+    for ax, (attr, title, colour) in zip(axes, hazard_types):
+        counts = defaultdict(int)
+        stalls = defaultdict(list)
+        for pkt in result.packets:
+            if getattr(pkt, attr):
+                counts[pkt.sensor_id] += 1
+                stalls[pkt.sensor_id].append(pkt.stall_ticks)
 
-    for sid, ticks in stall_ticks.items():
-        if ticks:
-            ax2.hist(ticks, bins=30, alpha=0.6, label=sid,
-                     color=COLOURS.get(sid, "#888"))
-    ax2.set_xlabel("Stall Duration (ticks)")
-    ax2.set_ylabel("Frequency")
-    ax2.set_title("Stall Duration Distribution")
-    ax2.legend(fontsize=8)
+        if not counts:
+            ax.text(0.5, 0.5, "No hazards\ndetected",
+                    ha="center", va="center", transform=ax.transAxes,
+                    fontsize=11, color="#888")
+            ax.set_title(title)
+            ax.axis("off")
+            continue
+
+        sids  = list(counts.keys())
+        cnts  = [counts[s] for s in sids]
+        bars  = ax.bar(sids, cnts, color=[COLOURS.get(s, "#888") for s in sids],
+                       edgecolor="k", linewidth=0.6)
+        for bar, cnt in zip(bars, cnts):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.3,
+                    str(cnt), ha="center", va="bottom", fontsize=9)
+        ax.set_title(title)
+        ax.set_xlabel("Sensor")
+        ax.set_ylabel("Hazard count")
+        ax.grid(axis="y", ls=":", alpha=0.4)
 
     plt.tight_layout()
     _savefig(fig, out)
@@ -307,11 +318,11 @@ def plot_latency_distributions(result: SimulationResult, out: str):
     data   = []
     labels = []
     colours_list = []
-    for sid in _EXPECTED_RATES_MAP:
+    for sid in EXPECTED_RATES_MAP:
         lats = result.pipeline_metrics[sid].latencies_us
         if lats:
             data.append(lats)
-            labels.append(f"{sid}\n({_EXPECTED_RATES_MAP[sid]} Hz)")
+            labels.append(f"{sid}\n({EXPECTED_RATES_MAP[sid]} Hz)")
             colours_list.append(COLOURS[sid])
 
     bp = ax.boxplot(data, patch_artist=True, notch=False,
