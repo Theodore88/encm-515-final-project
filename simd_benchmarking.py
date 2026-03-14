@@ -52,6 +52,55 @@ def generate_F_P_Q_dt(duration, seed):
 
     return F, P, Q, dt
 
+def transpose_scalar(matrix):
+    rows, columns = matrix.shape
+    transpose = np.zeros((columns, rows))
+
+    for row in range(rows):
+        for column in range(columns):
+            transpose[column, row] = matrix[row, column]
+    return transpose
+
+def matrix_multiply_scalar(matrix_A, matrix_B):
+    matrix_A_rows, matrix_A_columns = matrix_A.shape
+    matrix_B_rows, matrix_B_columns = matrix_B.shape
+
+    if matrix_A_columns == matrix_B_rows:
+        product = np.zeros((matrix_A_rows, matrix_B_columns))
+        for i in range(matrix_A_rows):
+            for j in range(matrix_B_columns):
+                total_sum = 0
+                for k in range(matrix_A_columns):
+                    total_sum += matrix_A[i, k] * matrix_B[k, j]
+                product[i, j] = total_sum
+    else:
+        print("ERROR! Invalid matrix multiplication dimensions.")
+        exit(1)
+    return product
+
+def matrix_add_scalar(matrix_A, matrix_B):
+    if matrix_A.shape == matrix_B.shape:
+        matrix_A_rows, matrix_A_columns = matrix_A.shape
+        total_sum = np.zeros((matrix_A_rows, matrix_A_columns))
+        for row in range(matrix_A_rows):
+            for column in range(matrix_A_columns):
+                total_sum[row, column] = matrix_A[row, column] + matrix_B[row, column]
+    else:
+        print("ERROR! Invalid matrix addition dimensions.")
+        exit(1)
+    return total_sum
+
+def covariance_predict_scalar(F, P, Q):
+    F_transpose = transpose_scalar(F)
+    propagated_covariance = matrix_multiply_scalar(F, P)
+    propagated_covariance = matrix_multiply_scalar(propagated_covariance, F_transpose)
+    resulting_matrix = matrix_add_scalar(propagated_covariance, Q)
+
+    return resulting_matrix
+
+def covariance_predict_vectorized(F, P, Q):
+    return F @ P @ F.T + Q
+
 def compare_simd_and_scalar(duration, seed):
     F, P, Q, dt = generate_F_P_Q_dt(duration, seed)
 
@@ -70,7 +119,7 @@ def compare_simd_and_scalar(duration, seed):
 
     for j in range(3):
         start_time = time.perf_counter()
-        out_simd = F @ P @ F.T + Q
+        out_simd = covariance_predict_vectorized(F, P, Q)
         finish_time = time.perf_counter()
         time_passed = finish_time - start_time
         best_simd_time = min(best_simd_time, time_passed)
