@@ -25,15 +25,19 @@ import numpy as np
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-
+import copy
 from sensor_models import (
     SensorReading,
     IMUSensor, GPSSensor, BarometerSensor,
     OpticalFlowSensor, MagnetometerSensor,
     generate_trajectory,
 )
-from kalman_filter import DroneEKF, PipelineMetrics, KalmanState, EXPECTED_RATES_MAP
 
+from kalman_filter import DroneEKF as DroneEKFFloat
+from kalman_filter_quantize import DroneEKF as DroneEKFQuant
+from kalman_filter import PipelineMetrics, KalmanState, EXPECTED_RATES_MAP
+
+import quantize_helpers as qh
 
 # Pipeline stage costs (ticks at CLOCK_MHZ)
 
@@ -171,7 +175,7 @@ class MultiStreamSimulator:
       6. Record metrics.
     """
 
-    def __init__(self, duration_s: float = 5.0, seed: int = 42):
+    def __init__(self, duration_s: float = 5.0, seed: int = 42, quantized: bool = False):
         self.duration_s = duration_s
         self.sim_dt     = 1.0 / IMUSensor.UPDATE_RATE_HZ
         self.rng        = np.random.default_rng(seed)
@@ -181,8 +185,11 @@ class MultiStreamSimulator:
         self.baro   = BarometerSensor(self.rng)
         self.opflow = OpticalFlowSensor(self.rng)
         self.mag    = MagnetometerSensor(self.rng)
-
-        self.ekf      = DroneEKF()
+        self.quantized = quantized
+        if quantized:
+            self.ekf = DroneEKFQuant()
+        else:
+            self.ekf = DroneEKFFloat()
         self.pipeline = FourStagePipeline()
         self.metrics  = {sid: PipelineMetrics(sensor_id=sid)
                          for sid in EXPECTED_RATES_MAP}
@@ -262,11 +269,15 @@ class MultiStreamSimulator:
                                       current_tick, t, all_readings, packets)
                 update_counts["MAG"] += 1
 
-            pos_err = np.linalg.norm(state.x[0:3] - truth.position)
-            vel_err = np.linalg.norm(state.x[3:6] - truth.velocity)
+            new_state = copy.deepcopy(state)
+            if self.quantized:
+                new_state.x = qh.dequantize_array(new_state.x, scale=qh.X_SCALE)
+                new_state.P = qh.dequantize_array(new_state.P, scale=qh.P_SCALE)
+            pos_err = np.linalg.norm(new_state.x[0:3] - truth.position)
+            vel_err = np.linalg.norm(new_state.x[3:6] - truth.velocity)
             pos_errors.append(pos_err)
             vel_errors.append(vel_err)
-            estimated_states.append(state)
+            estimated_states.append(new_state)
 
             if verbose and step % (n_steps // 10) == 0:
                 n_s = sum(1 for p in packets if p.structural_hazard)

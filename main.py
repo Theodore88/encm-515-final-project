@@ -31,6 +31,8 @@ def main():
                         help="Output directory for plots (default: ./output)")
     parser.add_argument("--no-plots", action="store_true",
                         help="Skip plot generation")
+    parser.add_argument("--quantized", action="store_true",
+                        help="Use quantized EKF", default= False)
     args = parser.parse_args()
 
     print("=" * 60)
@@ -42,7 +44,7 @@ def main():
     print()
 
     # Run simulation 
-    sim    = MultiStreamSimulator(duration_s=args.duration, seed=args.seed)
+    sim    = MultiStreamSimulator(duration_s=args.duration, seed=args.seed, quantized=args.quantized)
     result = sim.run(verbose=True)
 
     # Analyse pipeline 
