@@ -33,7 +33,7 @@ def main():
                         help="Skip plot generation")
     parser.add_argument("--quantized", action="store_true",
                         help="Use quantized EKF", default= False)
-    parser.add_argument("--cython", action="store_true",
+    parser.add_argument("--cython_quantized", action="store_true",
                         help="Use Cython-optimized EKF", default= False)
     args = parser.parse_args()
 
@@ -46,7 +46,7 @@ def main():
     print()
 
     # Run simulation 
-    sim    = MultiStreamSimulator(duration_s=args.duration, seed=args.seed, quantized=args.quantized, cython=args.cython)
+    sim    = MultiStreamSimulator(duration_s=args.duration, seed=args.seed, quantized=args.quantized, cython=args.cython_quantized)
     result = sim.run(verbose=True)
 
     # Analyse pipeline 
