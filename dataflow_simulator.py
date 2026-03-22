@@ -37,8 +37,6 @@ from kalman_filter import DroneEKF as DroneEKFFloat
 from kalman_filter_quantize import DroneEKF as DroneEKFQuant
 from kalman_filter import PipelineMetrics, KalmanState, EXPECTED_RATES_MAP
 
-import quantize_helpers as qh
-
 # Pipeline stage costs (ticks at CLOCK_MHZ)
 
 CLOCK_MHZ = 1.0   # 1 tick = 1 µs
@@ -186,11 +184,16 @@ class MultiStreamSimulator:
         self.opflow = OpticalFlowSensor(self.rng)
         self.mag    = MagnetometerSensor(self.rng)
         self.quantized = quantized
-        self.cython = cython
-        if quantized:
-            self.ekf = DroneEKFQuant()
+
+        if cython:
+            import quantize_helpers as qh_module
         else:
-            self.ekf = DroneEKFFloat(cython=cython)
+            import quantize_helpers_python as qh_module
+        self.qh = qh_module
+        if quantized:
+            self.ekf = DroneEKFQuant(cython=cython)
+        else:
+            self.ekf = DroneEKFFloat()
         self.pipeline = FourStagePipeline()
         self.metrics  = {sid: PipelineMetrics(sensor_id=sid)
                          for sid in EXPECTED_RATES_MAP}
@@ -272,8 +275,8 @@ class MultiStreamSimulator:
 
             new_state = copy.deepcopy(state)
             if self.quantized:
-                new_state.x = qh.dequantize_array(new_state.x, scale=qh.X_SCALE)
-                new_state.P = qh.dequantize_array(new_state.P, scale=qh.P_SCALE)
+                new_state.x = self.qh.dequantize_array(new_state.x, scale=self.qh.X_SCALE)
+                new_state.P = self.qh.dequantize_array(new_state.P, scale=self.qh.P_SCALE)
             pos_err = np.linalg.norm(new_state.x[0:3] - truth.position)
             vel_err = np.linalg.norm(new_state.x[3:6] - truth.velocity)
             pos_errors.append(pos_err)
