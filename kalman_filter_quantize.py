@@ -3,7 +3,6 @@ import time
 from dataclasses import dataclass, field
 from typing import Optional
 from sensor_models import SensorReading
-import quantize_helpers as qh
 
 STATE_DIM = 9   # State vector (9-DOF): x = [px, py, pz, vx, vy, vz, roll, pitch, yaw] (Position, Velocity, Attitude)
 
@@ -30,11 +29,16 @@ class DroneEKF:
     _Q_VEL_STD   = 0.05    # m/s (~5 cm/s of uncertainty in velocity, which is reasonable for a small drone with good IMU)
     _Q_ATT_STD   = 0.005   # rad (~0.3 degrees of uncertainty in attitude, which is reasonable for a small drone with good IMU)
 
-    def __init__(self):
+    def __init__(self, cython: bool = False):
+        if cython:
+            import quantize_helpers as qh_module
+        else:
+            import quantize_helpers_python as qh_module
+        self.qh = qh_module
         # Initial state: drone at origin, stationary
         self.state = KalmanState(
-            x=qh.quantize_array(np.zeros(STATE_DIM), scale=qh.X_SCALE),
-            P=qh.quantize_array(np.eye(STATE_DIM) * 1.0, scale=qh.P_SCALE),
+            x= self.qh.quantize_array(np.zeros(STATE_DIM), scale= self.qh.X_SCALE),
+            P= self.qh.quantize_array(np.eye(STATE_DIM) * 1.0, scale= self.qh.P_SCALE),
         )
         self._build_Q()
 
@@ -46,57 +50,85 @@ class DroneEKF:
         q[0:3] = self._Q_POS_STD**2 # uncertainty for x, y, z
         q[3:6] = self._Q_VEL_STD**2 # uncertainty for vx, vy, vz
         q[6:9] = self._Q_ATT_STD**2 # uncertainty for roll, pitch, yaw
-        self.Q = qh.quantize_array(np.diag(q), scale=qh.P_SCALE) # Diagonalize to create covariance matrix where each state variable's noise is independent of the others
+        self.Q = self.qh.quantize_array(np.diag(q), scale= self.qh.P_SCALE) # Diagonalize to create covariance matrix where each state variable's noise is independent of the others
 
-    def _state_transition(self, x: np.ndarray, dt: float,
-                          accel: np.ndarray, gyro: np.ndarray) -> np.ndarray:
+    def _state_transition(self, x_q: np.ndarray, dt_q: float,
+                          accel_q: np.ndarray, gyro_q: np.ndarray) -> np.ndarray:
         """Non-linear state transition function. Takes current state, IMU readings, and time delta to predict next state."""
-        x = qh.dequantize_array(x, scale=qh.X_SCALE) # Dequantize state to float for calculations
-        accel = qh.dequantize_array(accel, scale=qh.H_SCALE)  # accelerometer in measurement scale
-        gyro = qh.dequantize_array(gyro, scale=qh.H_SCALE)    # gyroscope in measurement scale
-        dt = qh.dequantize(dt, scale=qh.Q_BITS)
-        
-        px, py, pz = x[0], x[1], x[2]
-        vx, vy, vz = x[3], x[4], x[5]
-        roll, pitch, yaw = x[6], x[7], x[8]
+        # 1) Extract/angle for rotation (use float trig; keep full q path for everything else)
+        x_f = self.qh.dequantize_array(x_q, scale= self.qh.X_SCALE)
+        roll, pitch, yaw = x_f[6], x_f[7], x_f[8]
 
-        # Convert body-frame accelerations to world-frame using current attitude
-        '''
-        Note that when an accelerometer measures a drone's acceleration, it is relative to the drone frame. This doesn't necessarily
-        align with the world frame, because as a drone moves, it tilts to achieve aerodynamic stability. As a result of this, we have
-        to use trig to find the x and y components of acceleration (using the vehicle attitude).
-        '''
-        cr, sr = np.cos(roll), np.sin(roll)
-        cp, sp = np.cos(pitch), np.sin(pitch)
-        cy, sy = np.cos(yaw), np.sin(yaw)
-        
-        # Construct DCM (ZYX rotation matrix) to convert body-frame acceleration to world-frame (direct cosine matrix for a ZYX Euler-angle rotation)
-        R = np.array([
-            [cy*cp, cy*sp*sr - sy*cr, cy*sp*cr + sy*sr],
-            [sy*cp, sy*sp*sr + cy*cr, sy*sp*cr - cy*sr],
-            [-sp,   cp*sr,            cp*cr           ]
-        ])
-        g = np.array([0, 0, -9.81]) # Gravity vector in world frame (only in the z-axis; up and down)
-        acc_world = R @ accel + g # total acceleration in world frame (including gravity)
+        cr = np.cos(roll); sr = np.sin(roll)
+        cp = np.cos(pitch); sp = np.sin(pitch)
+        cy = np.cos(yaw); sy = np.sin(yaw)
 
-        # Update state using kinematics equations
-        '''
-        new_position = old_position + velocity * dt + 0.5 * acceleration * dt^2)
-        new_velocity = old_velocity + acceleration * dt
-        new_attitude = old_attitude + angular_rate * dt 
-        '''
-        x_new = np.array([
-            px + vx*dt + 0.5*acc_world[0]*dt**2,
-            py + vy*dt + 0.5*acc_world[1]*dt**2,
-            pz + vz*dt + 0.5*acc_world[2]*dt**2,
-            vx + acc_world[0]*dt,
-            vy + acc_world[1]*dt,
-            vz + acc_world[2]*dt,
-            roll  + gyro[0]*dt,
-            pitch + gyro[1]*dt,
-            yaw   + gyro[2]*dt,
-        ])
-        return qh.quantize_array(x_new, scale=qh.X_SCALE)
+        # quantize rotation terms into Q_BITS
+        cr_q = self.qh.quantize(cr, scale= self.qh.Q_BITS)
+        sr_q = self.qh.quantize(sr, scale= self.qh.Q_BITS)
+        cp_q = self.qh.quantize(cp, scale= self.qh.Q_BITS)
+        sp_q = self.qh.quantize(sp, scale= self.qh.Q_BITS)
+        cy_q = self.qh.quantize(cy, scale= self.qh.Q_BITS)
+        sy_q = self.qh.quantize(sy, scale= self.qh.Q_BITS)
+
+        # 2) Build R_q in a consistent fixed-point scale (Q_BITS)
+        def m(qp, qq): return self.qh.q_mul(qp, qq, self.qh.Q_BITS, self.qh.Q_BITS, self.qh.Q_BITS)
+        R_q = np.array([
+            [m(cy_q, cp_q), m(m(cy_q, sp_q), sr_q) - m(sy_q, cr_q), m(m(cy_q, sp_q), cr_q) + m(sy_q, sr_q)],
+            [m(sy_q, cp_q), m(m(sy_q, sp_q), sr_q) + m(cy_q, cr_q), m(m(sy_q, sp_q), cr_q) - m(cy_q, sr_q)],
+            [-sp_q,         m(cp_q, sr_q),                             m(cp_q, cr_q)]
+        ], dtype=np.int64)
+
+        # 3) Accel world in H_SCALE; convert R_q*accel_q;
+        accel_world_q = self.qh.q_mat_mul(R_q, accel_q.reshape(3,1),
+                                    a_scale= self.qh.Q_BITS, b_scale= self.qh.H_SCALE,
+                                    out_scale= self.qh.H_SCALE).flatten()
+        # Gravity in H_SCALE:
+        grav_q = np.array([0, 0, self.qh.quantize(-9.81, scale= self.qh.H_SCALE)], dtype=np.int64)
+        acc_world_q = accel_world_q + grav_q
+
+        # 4) Quantized kinematics (keeping X_SCALE for positions/velocity/update)
+        px_q, py_q, pz_q = x_q[0], x_q[1], x_q[2]
+        vx_q, vy_q, vz_q = x_q[3], x_q[4], x_q[5]
+        roll_q, pitch_q, yaw_q = self.qh.quantize(roll, self.qh.X_SCALE), self.qh.quantize(pitch, self.qh.X_SCALE), self.qh.quantize(yaw, self.qh.X_SCALE)
+
+        # dt as int fixed-point Q_BITS, velocities in X_SCALE
+        vx_dt_q = self.qh.q_mul(vx_q, dt_q, self.qh.X_SCALE, self.qh.Q_BITS, self.qh.X_SCALE)
+        vy_dt_q = self.qh.q_mul(vy_q, dt_q, self.qh.X_SCALE, self.qh.Q_BITS, self.qh.X_SCALE)
+        vz_dt_q = self.qh.q_mul(vz_q, dt_q, self.qh.X_SCALE, self.qh.Q_BITS, self.qh.X_SCALE)
+
+        ax_q, ay_q, az_q = acc_world_q[0], acc_world_q[1], acc_world_q[2]
+        ax_dt2_q = self.qh.q_mul(self.qh.q_mul(ax_q, dt_q, self.qh.H_SCALE, self.qh.Q_BITS, self.qh.H_SCALE),
+                            dt_q, self.qh.H_SCALE, self.qh.Q_BITS, self.qh.X_SCALE)
+        ay_dt2_q = self.qh.q_mul(self.qh.q_mul(ay_q, dt_q, self.qh.H_SCALE, self.qh.Q_BITS, self.qh.H_SCALE),
+                            dt_q, self.qh.H_SCALE, self.qh.Q_BITS, self.qh.X_SCALE)
+        az_dt2_q = self.qh.q_mul(self.qh.q_mul(az_q, dt_q, self.qh.H_SCALE, self.qh.Q_BITS, self.qh.H_SCALE),
+                            dt_q, self.qh.H_SCALE, self.qh.Q_BITS, self.qh.X_SCALE)
+
+        # x_{k+1} = p + vdt + 0.5 a dt^2
+        # 0.5 factor via >>1 (in X_SCALE)
+        x_new0_q = px_q + vx_dt_q + (ax_dt2_q >> 1)
+        x_new1_q = py_q + vy_dt_q + (ay_dt2_q >> 1)
+        x_new2_q = pz_q + vz_dt_q + (az_dt2_q >> 1)
+
+        # velocities
+        x_new3_q = vx_q + self.qh.q_mul(ax_q, dt_q, self.qh.H_SCALE, self.qh.Q_BITS, self.qh.X_SCALE)
+        x_new4_q = vy_q + self.qh.q_mul(ay_q, dt_q, self.qh.H_SCALE, self.qh.Q_BITS, self.qh.X_SCALE)
+        x_new5_q = vz_q + self.qh.q_mul(az_q, dt_q, self.qh.H_SCALE, self.qh.Q_BITS, self.qh.X_SCALE)
+
+        # attitude updates: gyro in H_SCALE -> to X_SCALE
+        gyro_x_q = self.qh.q_mul(gyro_q, dt_q, self.qh.H_SCALE, self.qh.Q_BITS, self.qh.X_SCALE)
+        x_new6_q = roll_q + gyro_x_q[0]
+        x_new7_q = pitch_q + gyro_x_q[1]
+        x_new8_q = yaw_q + gyro_x_q[2]
+
+        x_new_q = np.array([
+            x_new0_q, x_new1_q, x_new2_q,
+            x_new3_q, x_new4_q, x_new5_q,
+            x_new6_q, x_new7_q, x_new8_q
+        ], dtype=np.int64)
+
+        return x_new_q
 
     def _jacobian_F(self, x: np.ndarray, dt: float) -> np.ndarray:
         """
@@ -108,7 +140,7 @@ class DroneEKF:
         
         Also note that this is a simplified EKF Jacobian. One that is more complex would have things like velocity relying on vehicle attitude and acceleration (i.e., roll) and angular rates.
         """
-        F = qh.quantize_array(np.eye(STATE_DIM), scale=qh.Q_BITS   ) # 9x9 identity matrix that signifies that each state depends on it's previous value
+        F = self.qh.quantize_array(np.eye(STATE_DIM), scale= self.qh.Q_BITS   ) # 9x9 identity matrix that signifies that each state depends on it's previous value
         # Add simple kinematics dependency (position depends on velocity)
         F[0, 3] = dt # position x depends on velocity x
         F[1, 4] = dt # position y depends on velocity y
@@ -118,24 +150,24 @@ class DroneEKF:
     # Prediction and update functions for EKF
     def predict(self, imu_reading: SensorReading, dt: float) -> KalmanState:
         """IMU-driven prediction step."""
-        accel_q = qh.quantize_array(imu_reading.data[:3], scale=qh.H_SCALE)
-        gyro_q = qh.quantize_array(imu_reading.data[3:6], scale=qh.H_SCALE)
-        dt_q = qh.quantize(dt, scale=qh.Q_BITS)
+        accel_q = self.qh.quantize_array(imu_reading.data[:3], scale= self.qh.H_SCALE)
+        gyro_q = self.qh.quantize_array(imu_reading.data[3:6], scale= self.qh.H_SCALE)
+        dt_q = self.qh.quantize(dt, scale= self.qh.Q_BITS)
 
         x_pred_q = self._state_transition(self.state.x, dt_q, accel_q, gyro_q)
         F_q = self._jacobian_F(self.state.x, dt_q)  # use float dt here
-        #F_f = qh.dequantize_array(F_q, scale=qh.Q_BITS) # Quantize Jacobian to measurement scale since it will be used in the update step which is in measurement scale
+        #F_f = self.qh.dequantize_array(F_q, scale= self.qh.Q_BITS) # Quantize Jacobian to measurement scale since it will be used in the update step which is in measurement scale
         
-        # x_pred_f = qh.dequantize_array(x_pred_q, scale=qh.X_SCALE)
-        # P_f = qh.dequantize_array(self.state.P, scale=qh.P_SCALE)
-        # Q_f = qh.dequantize_array(self.Q, scale=qh.P_SCALE)
+        # x_pred_f = self.qh.dequantize_array(x_pred_q, scale= self.qh.X_SCALE)
+        # P_f = self.qh.dequantize_array(self.state.P, scale= self.qh.P_SCALE)
+        # Q_f = self.qh.dequantize_array(self.Q, scale= self.qh.P_SCALE)
 
         #P_pred_f = F_f @ P_f @ F_f.T + Q_f
-        P_pred_q = qh.q_mat_mul(
-            qh.q_mat_mul(F_q, self.state.P, a_scale=qh.Q_BITS, b_scale=qh.P_SCALE, out_scale=qh.P_SCALE),
-            F_q.T, a_scale=qh.P_SCALE, b_scale=qh.Q_BITS, out_scale=qh.P_SCALE
+        P_pred_q = self.qh.q_mat_mul(
+            self.qh.q_mat_mul(F_q, self.state.P, a_scale= self.qh.Q_BITS, b_scale= self.qh.P_SCALE, out_scale= self.qh.P_SCALE),
+            F_q.T, a_scale= self.qh.P_SCALE, b_scale= self.qh.Q_BITS, out_scale= self.qh.P_SCALE
         ) + self.Q
-        #P_pred_q = qh.quantize_array(P_pred_f, scale=qh.P_SCALE)
+        #P_pred_q = self.qh.quantize_array(P_pred_f, scale= self.qh.P_SCALE)
 
         self.state = KalmanState(x=x_pred_q,
                                  P=P_pred_q,
@@ -148,54 +180,54 @@ class DroneEKF:
         x_q = self.state.x
         P_q = self.state.P
 
-        z_q = qh.quantize_array(z, scale=qh.Z_SCALE)
-        H_q = qh.quantize_array(H, scale=qh.H_SCALE)
-        R_q = qh.quantize_array(R, scale=qh.P_SCALE)
+        z_q = self.qh.quantize_array(z, scale= self.qh.Z_SCALE)
+        H_q = self.qh.quantize_array(H, scale= self.qh.H_SCALE)
+        R_q = self.qh.quantize_array(R, scale= self.qh.P_SCALE)
 
         # Innovation: y = z - H*x
-        Hx_q = qh.q_mat_mul(H_q, x_q.reshape(-1,1),
-                            a_scale=qh.H_SCALE, b_scale=qh.X_SCALE,
-                            out_scale=qh.Z_SCALE).flatten()
+        Hx_q = self.qh.q_mat_mul(H_q, x_q.reshape(-1,1),
+                            a_scale= self.qh.H_SCALE, b_scale= self.qh.X_SCALE,
+                            out_scale= self.qh.Z_SCALE).flatten()
         y_q = z_q - Hx_q
 
         # Innovation covariance: S = HPH^T + R
-        HP_q = qh.q_mat_mul(H_q, P_q,
-                            a_scale=qh.H_SCALE, b_scale=qh.P_SCALE,
-                            out_scale=qh.P_SCALE)
-        S_q = qh.q_mat_mul(HP_q, H_q.T,
-                            a_scale=qh.P_SCALE, b_scale=qh.H_SCALE,
-                            out_scale=qh.P_SCALE) + R_q
+        HP_q = self.qh.q_mat_mul(H_q, P_q,
+                            a_scale= self.qh.H_SCALE, b_scale= self.qh.P_SCALE,
+                            out_scale= self.qh.P_SCALE)
+        S_q = self.qh.q_mat_mul(HP_q, H_q.T,
+                            a_scale= self.qh.P_SCALE, b_scale= self.qh.H_SCALE,
+                            out_scale= self.qh.P_SCALE) + R_q
 
         # Inversion in float, then re-quantize
-        S_f = qh.dequantize_array(S_q, scale=qh.P_SCALE)
+        S_f = self.qh.dequantize_array(S_q, scale= self.qh.P_SCALE)
         S_inv_f = np.linalg.inv(S_f)
-        S_inv_q = qh.quantize_array(S_inv_f, scale=qh.P_SCALE)
+        S_inv_q = self.qh.quantize_array(S_inv_f, scale= self.qh.P_SCALE)
 
         # Kalman gain: K = P H^T S^{-1}
-        PHt_q = qh.q_mat_mul(P_q, H_q.T,
-                             a_scale=qh.P_SCALE, b_scale=qh.H_SCALE,
-                             out_scale=qh.P_SCALE)
-        K_q = qh.q_mat_mul(PHt_q, S_inv_q,
-                           a_scale=qh.P_SCALE, b_scale=qh.P_SCALE,
-                           out_scale=qh.P_SCALE)
+        PHt_q = self.qh.q_mat_mul(P_q, H_q.T,
+                             a_scale= self.qh.P_SCALE, b_scale= self.qh.H_SCALE,
+                             out_scale= self.qh.P_SCALE)
+        K_q = self.qh.q_mat_mul(PHt_q, S_inv_q,
+                           a_scale= self.qh.P_SCALE, b_scale= self.qh.P_SCALE,
+                           out_scale= self.qh.P_SCALE)
 
         # State update
-        K_y_q = qh.q_mat_mul(K_q, y_q.reshape(-1,1),
-                              a_scale=qh.P_SCALE, b_scale=qh.Z_SCALE,
-                              out_scale=qh.X_SCALE).flatten()
+        K_y_q = self.qh.q_mat_mul(K_q, y_q.reshape(-1,1),
+                              a_scale= self.qh.P_SCALE, b_scale= self.qh.Z_SCALE,
+                              out_scale= self.qh.X_SCALE).flatten()
         x_upd_q = x_q + K_y_q
 
         # Covariance update
-        K_H_q = qh.q_mat_mul(K_q, H_q,
-                              a_scale=qh.P_SCALE, b_scale=qh.H_SCALE,
-                              out_scale=qh.P_SCALE)
-        I_q = qh.quantize_array(np.eye(STATE_DIM), scale=qh.P_SCALE)
-        P_upd_q = qh.q_mat_mul((I_q - K_H_q), P_q,
-                               a_scale=qh.P_SCALE, b_scale=qh.P_SCALE,
-                               out_scale=qh.P_SCALE)
+        K_H_q = self.qh.q_mat_mul(K_q, H_q,
+                              a_scale= self.qh.P_SCALE, b_scale= self.qh.H_SCALE,
+                              out_scale= self.qh.P_SCALE)
+        I_q = self.qh.quantize_array(np.eye(STATE_DIM), scale= self.qh.P_SCALE)
+        P_upd_q = self.qh.q_mat_mul((I_q - K_H_q), P_q,
+                               a_scale= self.qh.P_SCALE, b_scale= self.qh.P_SCALE,
+                               out_scale= self.qh.P_SCALE)
 
         self.state = KalmanState(x=x_upd_q, P=P_upd_q, timestamp=timestamp,
-                                 innovation=qh.quantize_array(y_q, scale=qh.Z_SCALE))
+                                 innovation= self.qh.quantize_array(y_q, scale= self.qh.Z_SCALE))
         return self.state
 
     def update_gps(self, reading: SensorReading) -> KalmanState:
