@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 from sensor_models import SensorReading
 
+from simd.ekf_compare import covariance_predict_scalar, covariance_predict_simd
+
 STATE_DIM = 9   # State vector (9-DOF): x = [px, py, pz, vx, vy, vz, roll, pitch, yaw] (Position, Velocity, Attitude)
 
 @dataclass
@@ -29,13 +31,14 @@ class DroneEKF:
     _Q_VEL_STD   = 0.05    # m/s (~5 cm/s of uncertainty in velocity, which is reasonable for a small drone with good IMU)
     _Q_ATT_STD   = 0.005   # rad (~0.3 degrees of uncertainty in attitude, which is reasonable for a small drone with good IMU)
 
-    def __init__(self):
+    def __init__(self, simd = False):        
         # Initial state: drone at origin, stationary
         self.state = KalmanState(
             x=np.zeros(STATE_DIM), # Current state vector: [px, py, pz, vx, vy, vz, roll, pitch, yaw]
             P=np.eye(STATE_DIM) * 1.0, # Covariance matrix; the amount of uncertainty in the estimate
         )
         self._build_Q()
+        self.simd = simd
 
     # Helper functions for EKF prediction and update steps
     def _build_Q(self):
@@ -117,7 +120,16 @@ class DroneEKF:
 
         x_pred = self._state_transition(self.state.x, dt, accel, gyro) # Get predicted state based on previous state and IMU readings
         F      = self._jacobian_F(self.state.x, dt) # Get jacobian of state transition function to linearize the non-linear x_pred
-        P_pred = F @ self.state.P @ F.T + self.Q # predict new covariance (uncertainty in state) based on previous covariance and process noise
+        
+        F = np.ascontiguousarray(F, dtype=np.float64)
+        P = np.ascontiguousarray(self.state.P, dtype=np.float64)
+        Q = np.ascontiguousarray(self.Q, dtype=np.float64)
+
+        # predict new covariance (uncertainty in state) based on previous covariance and process noise
+        if self.simd:
+            P_pred = covariance_predict_simd(F, P, Q)
+        else:
+            P_pred = covariance_predict_scalar(F, P, Q)
 
         self.state = KalmanState(x=x_pred, P=P_pred, # Update filter state with new predicted mean and covariance
                                  timestamp=imu_reading.timestamp)
