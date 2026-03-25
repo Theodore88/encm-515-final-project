@@ -57,35 +57,30 @@ def q_mul(a_q, b_q, int a_scale = Q_BITS,
     cdef int shift = a_scale + b_scale - out_scale
     cdef object product
     cdef int64_t shifted
-    if np.isscalar(a_q) and np.isscalar(b_q):
-        product = int(a_q) * int(b_q)
-        shifted = product >> shift
-        if shifted < q_min:
-            shifted = q_min
-        elif shifted > q_max:
-            shifted = q_max
-        return np.int64(shifted)
 
-    cdef cnp.ndarray[cnp.int64_t] a_q_int = np.asarray(a_q, dtype=np.int64)
-    cdef object b_q_int = np.asarray(b_q, dtype=np.int64)
-    cdef cnp.ndarray[cnp.int64_t] product_q = a_q_int * b_q_int
-    cdef cnp.ndarray[cnp.int64_t] shifted_q = product_q >> shift
-    return np.clip(shifted_q, q_min, q_max).astype(np.int64)
+    cdef cnp.ndarray A_in = np.asarray(a_q, dtype=np.int64)
+    cdef cnp.ndarray B_in = np.asarray(b_q, dtype=np.int64)
+
+    product = np.multiply(A_in, B_in)
+    shift = a_scale + b_scale - out_scale
+    result = product >> shift
+    q_min = -(2**(BITS - 1))
+    q_max = (2**(BITS - 1) - 1)
+    return np.clip(result, q_min, q_max).astype(np.int64)
+
 
 def q_mat_mul(cnp.ndarray A, cnp.ndarray B, int a_scale = Q_BITS, 
               int b_scale = Q_BITS, int out_scale = Q_BITS):
     cdef cnp.ndarray result = np.zeros((A.shape[0], B.shape[1]), dtype=np.int64)
     cdef int i, j, k, shift
     cdef int64_t acc
-    cdef int64_t q_min = -(2**(BITS - 1))
-    cdef int64_t q_max = (2**(BITS - 1) - 1)
-    
-    for i in range(A.shape[0]):
-        for j in range(B.shape[1]):
-            acc = 0
-            for k in range(A.shape[1]):
-                acc += A[i, k] * B[k, j]
-            shift = a_scale + b_scale - out_scale
-            result[i, j] = acc >> shift
-    
-    return np.clip(result, q_min, q_max).astype("int64")
+    cdef cnp.ndarray A_in = np.asarray(A, dtype=np.int64)
+    cdef cnp.ndarray B_in = np.asarray(B, dtype=np.int64)
+
+    # Vectorized matrix multiply using BLAS
+    product = A_in @ B_in
+    shift = a_scale + b_scale - out_scale
+    result = product >> shift
+    q_min = -(2**(BITS - 1))
+    q_max = (2**(BITS - 1) - 1)
+    return np.clip(result, q_min, q_max).astype(np.int64)
