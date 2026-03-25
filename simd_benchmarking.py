@@ -5,6 +5,10 @@ from kalman_filter import DroneEKF, STATE_DIM
 from dataflow_simulator import MultiStreamSimulator
 from simd.ekf_functions import covariance_predict_scalar, covariance_predict_simd
 
+import argparse
+import os
+import matplotlib.pyplot as plt
+
 iterations = 100000
 repeats = 5
 
@@ -37,8 +41,8 @@ def generate_F_P_Q_dt(duration, seed):
 def compare_simd_and_scalar(duration, seed):
     F, P, Q, dt = generate_F_P_Q_dt(duration, seed)
 
-    best_scalar_time = float("inf")
-    best_simd_time = float("inf")
+    scalar_times = []
+    simd_times = []
     out_scalar = None
     out_simd = None
 
@@ -47,17 +51,17 @@ def compare_simd_and_scalar(duration, seed):
         for j in range(iterations):
             out_scalar = covariance_predict_scalar(F, P, Q)
         finish_time = time.perf_counter()
-        best_scalar_time = min(best_scalar_time, finish_time - start_time)
+        scalar_times.append((finish_time - start_time) / iterations)
 
     for i in range(repeats): # Optimized with SIMD
         start_time = time.perf_counter()
         for j in range(iterations):
             out_simd = covariance_predict_simd(F, P, Q)
         finish_time = time.perf_counter()
-        best_simd_time = min(best_simd_time, finish_time - start_time)
+        simd_times.append((finish_time - start_time) / iterations)
 
-    best_scalar_time = best_scalar_time / iterations
-    best_simd_time = best_simd_time / iterations
+    best_scalar_time = min(scalar_times)
+    best_simd_time = min(simd_times)
 
     max_abs_err_scalar_vs_simd = np.max(np.abs(out_scalar - out_simd))
 
@@ -67,7 +71,61 @@ def compare_simd_and_scalar(duration, seed):
     print(f"Cython SIMD speedup over scalar:       {best_scalar_time / best_simd_time:.2f}x")
     print(f"Absolute difference scalar vs SIMD:  {max_abs_err_scalar_vs_simd:.12e}")
 
+    return {
+        "scalar_time": best_scalar_time,
+        "simd_time": best_simd_time,
+        "simd_speedup": best_scalar_time / best_simd_time,
+        "diff_scalar_simd": max_abs_err_scalar_vs_simd,
+        "scalar_times": scalar_times,
+        "simd_times": simd_times,
+    }
+
+def generate_simd_plots(results: dict):
+    output_dir = os.path.join("simd", "output")
+    os.makedirs(output_dir, exist_ok=True)
+
+    scalar_time = results["scalar_time"]
+    simd_time = results["simd_time"]
+
+    simd_speedup = results["simd_speedup"]
+
+    scalar_times = results["scalar_times"]
+    simd_times = results["simd_times"]
+
+    plt.figure()
+    plt.bar(["Scalar", "SIMD"], [scalar_time, simd_time])
+    plt.ylabel("Execution Time (s)")
+    plt.title("SIMD Covariance Prediction Runtime")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "runtime_comparison.png"), dpi=200)
+    plt.close()
+
+    plt.figure()
+    plt.bar(["Scalar", "SIMD"], [1.0, simd_speedup])
+    plt.ylabel("Speedup vs Scalar")
+    plt.title("SIMD Covariance Prediction Speedup")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "speedup_comparison.png"), dpi=200)
+    plt.close()
+
+    plt.figure()
+    plt.boxplot([scalar_times, simd_times], labels=["Scalar", "SIMD"])
+    plt.ylabel("Execution Time (s)")
+    plt.title("SIMD Covariance Prediction Runtime Distribution Across Trials")
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "runtime_distribution.png"), dpi=200)
+    plt.close()
+
+    print(f"Saved plots to {output_dir}")
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--visualize", action="store_true", help="Generate SIMD plots")
+    args = parser.parse_args()
+
     duration = 5.0
     seed = 42
-    compare_simd_and_scalar(duration, seed)
+    results = compare_simd_and_scalar(duration, seed)
+
+    if args.visualize:
+        generate_simd_plots(results)

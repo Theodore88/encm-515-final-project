@@ -173,7 +173,7 @@ class MultiStreamSimulator:
       6. Record metrics.
     """
 
-    def __init__(self, duration_s: float = 5.0, seed: int = 42, quantized: bool = False, cython: bool = False):
+    def __init__(self, duration_s: float = 5.0, seed: int = 42, quantized: bool = False, cython: bool = False, simd: bool = False):
         self.duration_s = duration_s
         self.sim_dt     = 1.0 / IMUSensor.UPDATE_RATE_HZ
         self.rng        = np.random.default_rng(seed)
@@ -184,6 +184,7 @@ class MultiStreamSimulator:
         self.opflow = OpticalFlowSensor(self.rng)
         self.mag    = MagnetometerSensor(self.rng)
         self.quantized = quantized
+        self.simd = simd
 
         if cython:
             import quantize_helpers as qh_module
@@ -193,7 +194,7 @@ class MultiStreamSimulator:
         if quantized:
             self.ekf = DroneEKFQuant(cython=cython)
         else:
-            self.ekf = DroneEKFFloat()
+            self.ekf = DroneEKFFloat(simd)
         self.pipeline = FourStagePipeline()
         self.metrics  = {sid: PipelineMetrics(sensor_id=sid)
                          for sid in EXPECTED_RATES_MAP}
