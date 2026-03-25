@@ -29,7 +29,7 @@ class DroneEKF:
     _Q_VEL_STD   = 0.05    # m/s (~5 cm/s of uncertainty in velocity, which is reasonable for a small drone with good IMU)
     _Q_ATT_STD   = 0.005   # rad (~0.3 degrees of uncertainty in attitude, which is reasonable for a small drone with good IMU)
 
-    def __init__(self):
+    def __init__(self):        
         # Initial state: drone at origin, stationary
         self.state = KalmanState(
             x=np.zeros(STATE_DIM), # Current state vector: [px, py, pz, vx, vy, vz, roll, pitch, yaw]
