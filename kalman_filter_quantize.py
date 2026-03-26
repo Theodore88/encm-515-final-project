@@ -201,7 +201,7 @@ class DroneEKF:
 
         # Inversion in float, then re-quantize
         S_f = self.qh.dequantize_array(S_q, scale= self.qh.P_SCALE)
-        S_inv_f = np.linalg.inv(S_f)
+        S_inv_f = np.linalg.pinv(S_f)
         S_inv_q = self.qh.quantize_array(S_inv_f, scale= self.qh.P_SCALE)
 
         # Kalman gain: K = P H^T S^{-1}
