@@ -1,5 +1,6 @@
 #include "simd_scalar_functions.h"
 #include <immintrin.h>
+#include <stdlib.h>
 
 // Use AVX/AVX2-style 256-bit vectors from immintrin to do 4 doubles at one time (because 256 / 64 bit doubles = 4)
 
@@ -19,48 +20,63 @@ static inline double hsum256_pd(__m256d vector) {
     return _mm_cvtsd_f64(total_sum);
 }
 
-void matrix_transpose(const double* matrix, double* transpose_matrix) {
-    for (int row = 0; row < 9; ++row) {
-        for (int column = 0; column < 9; ++column) {
-            transpose_matrix[column * 9 + row] = matrix[row * 9 + column];
+void matrix_transpose(const double* matrix, double* transpose_matrix, int N) {
+    for (int row = 0; row < N; ++row) {
+        for (int column = 0; column < N; ++column) {
+            transpose_matrix[column * N + row] = matrix[row * N + column];
         }
     }
 }
 
-void matrix_add_scalar(const double* matrix_A, const double* matrix_B, double* total_sum) {
-    for (int index = 0; index < 81; index++) {
+void matrix_add_scalar(const double* matrix_A, const double* matrix_B, double* total_sum, int N) {
+    int total_elements = N * N;
+    for (int index = 0; index < total_elements; index++) {
         total_sum[index] = matrix_A[index] + matrix_B[index];
     }
 }
 
-void matrix_multiply_scalar(const double* matrix_A, const double* matrix_B, double* product) {
-    for (int row = 0; row < 9; row++) {
-        for (int column = 0; column < 9; column++) {
+void matrix_multiply_scalar(const double* matrix_A, const double* matrix_B, double* product, int N) {
+    for (int row = 0; row < N; row++) {
+        for (int column = 0; column < N; column++) {
             double total_sum = 0.0;
-            for (int element = 0; element < 9; element++) {
-                total_sum += matrix_A[row * 9 + element] * matrix_B[element * 9 + column];
+            for (int element = 0; element < N; element++) {
+                total_sum += matrix_A[row * N + element] * matrix_B[element * N + column];
             }
-            product[row * 9 + column] = total_sum;
+            product[row * N + column] = total_sum;
         }
     }
 }
 
-void covariance_predict_scalar(const double* F, const double* P, const double* Q, double* resulting_matrix) {
-    double F_transpose[81];
-    double propagated_covariance[81];
-    double propagated_covariance_times_transpose[81];
+void covariance_predict_scalar(const double* F, const double* P, const double* Q, double* resulting_matrix, int N) {
+    int total_elements = N * N;
 
-    matrix_transpose(F, F_transpose);
-    matrix_multiply_scalar(F, P, propagated_covariance);
-    matrix_multiply_scalar(propagated_covariance, F_transpose, propagated_covariance_times_transpose);
-    matrix_add_scalar(propagated_covariance_times_transpose, Q, resulting_matrix);
+    double* F_transpose = (double*)malloc(total_elements * sizeof(double));
+    double* propagated_covariance = (double*)malloc(total_elements * sizeof(double));
+    double* propagated_covariance_times_transpose = (double*)malloc(total_elements * sizeof(double));
+
+    if (F_transpose == NULL || propagated_covariance == NULL || propagated_covariance_times_transpose == NULL) {
+        free(F_transpose);
+        free(propagated_covariance);
+        free(propagated_covariance_times_transpose);
+        return;
+    }
+
+    matrix_transpose(F, F_transpose, N);
+    matrix_multiply_scalar(F, P, propagated_covariance, N);
+    matrix_multiply_scalar(propagated_covariance, F_transpose, propagated_covariance_times_transpose, N);
+    matrix_add_scalar(propagated_covariance_times_transpose, Q, resulting_matrix, N);
+
+    free(F_transpose);
+    free(propagated_covariance);
+    free(propagated_covariance_times_transpose);
 }
 
-void matrix_add_simd(const double* matrix_A, const double* matrix_B, double* total_sum)
+void matrix_add_simd(const double* matrix_A, const double* matrix_B, double* total_sum, int N)
 {    
     int index = 0;
+    int total_elements = N * N;
 
-    while (index + 4 <= 81) // 9x9 matrix means 81 elements, 4 completed at a time with SIMD
+    while (index + 4 <= total_elements) // 4 completed at a time with SIMD
     {
         __m256d matrix_A_values = _mm256_loadu_pd(&matrix_A[index]);
         __m256d matrix_B_values = _mm256_loadu_pd(&matrix_B[index]);
@@ -69,53 +85,75 @@ void matrix_add_simd(const double* matrix_A, const double* matrix_B, double* tot
         index += 4;
     }
 
-    while (index < 81) { // 81 isn't divisible by 4, so get the remaining elements
+    while (index < total_elements) {
         total_sum[index] = matrix_A[index] + matrix_B[index];
         index++;
     }
 }
 
-void matrix_multiply_simd(const double* matrix_A, const double* matrix_B, double* product) {
-    double matrix_B_transpose[81];
-    matrix_transpose(matrix_B, matrix_B_transpose);
+void matrix_multiply_simd(const double* matrix_A, const double* matrix_B, double* product, int N) {
+    int total_elements = N * N;
+    double* matrix_B_transpose = (double*)malloc(total_elements * sizeof(double));
+
+    if (matrix_B_transpose == NULL) {
+        return;
+    }
+
+    matrix_transpose(matrix_B, matrix_B_transpose, N);
 
     // Taking the transpose makes it easier lateer because product[row][column] = dot_product(matrix_A[row], matrix_B[column])
 
-    for (int row = 0; row < 9; ++row) {
-        const double* matrix_A_row = &matrix_A[row * 9]; // Pointer to the current row from matrix A
+    for (int row = 0; row < N; ++row) {
+        const double* matrix_A_row = &matrix_A[row * N]; // Pointer to the current row from matrix A
 
-        for (int column = 0; column < 9; ++column) {
-            const double* matrix_B_transpose_row = &matrix_B_transpose[column * 9]; // Pointer to the current column from matrix B
+        for (int column = 0; column < N; ++column) {
+            const double* matrix_B_transpose_row = &matrix_B_transpose[column * N]; // Pointer to the current column from matrix B
 
             __m256d accumulated_sum = _mm256_setzero_pd(); // Reset/initialize a vector register filled with 0s (4 values)
 
-            // Compue for elements 0..3
-            __m256d matrix_A_values_0 = _mm256_loadu_pd(&matrix_A_row[0]); // Load 4 elements from current row of matrix A
-            __m256d matrix_B_values_0 = _mm256_loadu_pd(&matrix_B_transpose_row[0]); // Load 4 elements from the transposed matrix B
-            accumulated_sum = _mm256_fmadd_pd(matrix_A_values_0, matrix_B_values_0, accumulated_sum); // Compute the MAC
+            int element = 0;
 
-            // Compute for elements 4..7
-            __m256d matrix_A_values_1 = _mm256_loadu_pd(&matrix_A_row[4]); // Load the next 4 elements from current row of matrix A
-            __m256d matrix_B_values_1 = _mm256_loadu_pd(&matrix_B_transpose_row[4]); // Load the corresponding 4 elements from transpose matrix B
-            accumulated_sum = _mm256_fmadd_pd(matrix_A_values_1, matrix_B_values_1, accumulated_sum); // Add to the current MAC
+            while (element + 4 <= N) {
+                __m256d matrix_A_values = _mm256_loadu_pd(&matrix_A_row[element]); // Load 4 elements from current row of matrix A
+                __m256d matrix_B_values = _mm256_loadu_pd(&matrix_B_transpose_row[element]); // Load the corresponding 4 elements from transpose matrix B
+                accumulated_sum = _mm256_fmadd_pd(matrix_A_values, matrix_B_values, accumulated_sum); // Compute the MAC
+                element += 4;
+            }
 
             double total_sum = hsum256_pd(accumulated_sum);
-            
-            // Add the element at index 8 (the 9th element... for yaw)
-            total_sum += matrix_A_row[8] * matrix_B_transpose_row[8];
 
-            product[row * 9 + column] = total_sum;
+            while (element < N) {
+                total_sum += matrix_A_row[element] * matrix_B_transpose_row[element];
+                element++;
+            }
+
+            product[row * N + column] = total_sum;
         }
     }
+
+    free(matrix_B_transpose);
 }
 
-void covariance_predict_simd(const double* F, const double* P, const double* Q, double* resulting_matrix) {
-    double F_transpose[81];
-    double propagated_covariance[81];
-    double propagated_covariance_times_transpose[81];
+void covariance_predict_simd(const double* F, const double* P, const double* Q, double* resulting_matrix, int N) {
+    int total_elements = N * N;
 
-    matrix_transpose(F, F_transpose); // No big SIMD optimizations for the transpose
-    matrix_multiply_simd(F, P, propagated_covariance);
-    matrix_multiply_simd(propagated_covariance, F_transpose, propagated_covariance_times_transpose);
-    matrix_add_simd(propagated_covariance_times_transpose, Q, resulting_matrix);
+    double* F_transpose = (double*)malloc(total_elements * sizeof(double));
+    double* propagated_covariance = (double*)malloc(total_elements * sizeof(double));
+    double* propagated_covariance_times_transpose = (double*)malloc(total_elements * sizeof(double));
+
+    if (F_transpose == NULL || propagated_covariance == NULL || propagated_covariance_times_transpose == NULL) {
+        free(F_transpose);
+        free(propagated_covariance);
+        free(propagated_covariance_times_transpose);
+        return;
+    }
+
+    matrix_transpose(F, F_transpose, N); // No big SIMD optimizations for the transpose
+    matrix_multiply_simd(F, P, propagated_covariance, N);
+    matrix_multiply_simd(propagated_covariance, F_transpose, propagated_covariance_times_transpose, N);
+    matrix_add_simd(propagated_covariance_times_transpose, Q, resulting_matrix, N);
+
+    free(F_transpose);
+    free(propagated_covariance);
+    free(propagated_covariance_times_transpose);
 }
