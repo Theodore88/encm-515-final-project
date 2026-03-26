@@ -2632,13 +2632,13 @@ static const char __pyx_k_q_arr[] = "q_arr";
 static const char __pyx_k_q_max[] = "q_max";
 static const char __pyx_k_q_min[] = "q_min";
 static const char __pyx_k_q_mul[] = "q_mul";
-static const char __pyx_k_round[] = "round";
 static const char __pyx_k_scale[] = "scale";
 static const char __pyx_k_shift[] = "shift";
 static const char __pyx_k_value[] = "value";
 static const char __pyx_k_zeros[] = "zeros";
 static const char __pyx_k_Q_BITS[] = "Q_BITS";
 static const char __pyx_k_astype[] = "astype";
+static const char __pyx_k_divide[] = "divide";
 static const char __pyx_k_import[] = "__import__";
 static const char __pyx_k_matmul[] = "__matmul__";
 static const char __pyx_k_q_copy[] = "q_copy";
@@ -2657,11 +2657,11 @@ static const char __pyx_k_product[] = "product";
 static const char __pyx_k_q_value[] = "q_value";
 static const char __pyx_k_rmatmul[] = "__rmatmul__";
 static const char __pyx_k_shifted[] = "shifted";
+static const char __pyx_k_x_input[] = "x_input";
 static const char __pyx_k_deepcopy[] = "deepcopy";
 static const char __pyx_k_multiply[] = "multiply";
 static const char __pyx_k_quantize[] = "quantize";
 static const char __pyx_k_x_decode[] = "x_decode";
-static const char __pyx_k_x_icnput[] = "x_icnput";
 static const char __pyx_k_x_scaled[] = "x_scaled";
 static const char __pyx_k_out_scale[] = "out_scale";
 static const char __pyx_k_q_mat_mul[] = "q_mat_mul";
@@ -2785,6 +2785,7 @@ typedef struct {
   PyObject *__pyx_n_s_deepcopy;
   PyObject *__pyx_n_s_dequantize;
   PyObject *__pyx_n_s_dequantize_array;
+  PyObject *__pyx_n_s_divide;
   PyObject *__pyx_n_s_dtype;
   PyObject *__pyx_n_s_float;
   PyObject *__pyx_n_s_float64;
@@ -2820,7 +2821,6 @@ typedef struct {
   PyObject *__pyx_n_s_result;
   PyObject *__pyx_n_s_return;
   PyObject *__pyx_n_s_rmatmul;
-  PyObject *__pyx_n_s_round;
   PyObject *__pyx_n_s_scale;
   PyObject *__pyx_n_s_scale_amount;
   PyObject *__pyx_n_s_shift;
@@ -2829,13 +2829,12 @@ typedef struct {
   PyObject *__pyx_n_s_test;
   PyObject *__pyx_n_s_value;
   PyObject *__pyx_n_s_x_decode;
-  PyObject *__pyx_n_s_x_icnput;
+  PyObject *__pyx_n_s_x_input;
   PyObject *__pyx_n_s_x_scaled;
   PyObject *__pyx_n_s_zeros;
   PyObject *__pyx_int_1;
   PyObject *__pyx_int_2;
-  PyObject *__pyx_int_20;
-  PyObject *__pyx_int_24;
+  PyObject *__pyx_int_12;
   PyObject *__pyx_int_32;
   PyObject *__pyx_int_64;
   PyObject *__pyx_tuple_;
@@ -2939,6 +2938,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_deepcopy);
   Py_CLEAR(clear_module_state->__pyx_n_s_dequantize);
   Py_CLEAR(clear_module_state->__pyx_n_s_dequantize_array);
+  Py_CLEAR(clear_module_state->__pyx_n_s_divide);
   Py_CLEAR(clear_module_state->__pyx_n_s_dtype);
   Py_CLEAR(clear_module_state->__pyx_n_s_float);
   Py_CLEAR(clear_module_state->__pyx_n_s_float64);
@@ -2974,7 +2974,6 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_result);
   Py_CLEAR(clear_module_state->__pyx_n_s_return);
   Py_CLEAR(clear_module_state->__pyx_n_s_rmatmul);
-  Py_CLEAR(clear_module_state->__pyx_n_s_round);
   Py_CLEAR(clear_module_state->__pyx_n_s_scale);
   Py_CLEAR(clear_module_state->__pyx_n_s_scale_amount);
   Py_CLEAR(clear_module_state->__pyx_n_s_shift);
@@ -2983,13 +2982,12 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_test);
   Py_CLEAR(clear_module_state->__pyx_n_s_value);
   Py_CLEAR(clear_module_state->__pyx_n_s_x_decode);
-  Py_CLEAR(clear_module_state->__pyx_n_s_x_icnput);
+  Py_CLEAR(clear_module_state->__pyx_n_s_x_input);
   Py_CLEAR(clear_module_state->__pyx_n_s_x_scaled);
   Py_CLEAR(clear_module_state->__pyx_n_s_zeros);
   Py_CLEAR(clear_module_state->__pyx_int_1);
   Py_CLEAR(clear_module_state->__pyx_int_2);
-  Py_CLEAR(clear_module_state->__pyx_int_20);
-  Py_CLEAR(clear_module_state->__pyx_int_24);
+  Py_CLEAR(clear_module_state->__pyx_int_12);
   Py_CLEAR(clear_module_state->__pyx_int_32);
   Py_CLEAR(clear_module_state->__pyx_int_64);
   Py_CLEAR(clear_module_state->__pyx_tuple_);
@@ -3071,6 +3069,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_deepcopy);
   Py_VISIT(traverse_module_state->__pyx_n_s_dequantize);
   Py_VISIT(traverse_module_state->__pyx_n_s_dequantize_array);
+  Py_VISIT(traverse_module_state->__pyx_n_s_divide);
   Py_VISIT(traverse_module_state->__pyx_n_s_dtype);
   Py_VISIT(traverse_module_state->__pyx_n_s_float);
   Py_VISIT(traverse_module_state->__pyx_n_s_float64);
@@ -3106,7 +3105,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_result);
   Py_VISIT(traverse_module_state->__pyx_n_s_return);
   Py_VISIT(traverse_module_state->__pyx_n_s_rmatmul);
-  Py_VISIT(traverse_module_state->__pyx_n_s_round);
   Py_VISIT(traverse_module_state->__pyx_n_s_scale);
   Py_VISIT(traverse_module_state->__pyx_n_s_scale_amount);
   Py_VISIT(traverse_module_state->__pyx_n_s_shift);
@@ -3115,13 +3113,12 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_test);
   Py_VISIT(traverse_module_state->__pyx_n_s_value);
   Py_VISIT(traverse_module_state->__pyx_n_s_x_decode);
-  Py_VISIT(traverse_module_state->__pyx_n_s_x_icnput);
+  Py_VISIT(traverse_module_state->__pyx_n_s_x_input);
   Py_VISIT(traverse_module_state->__pyx_n_s_x_scaled);
   Py_VISIT(traverse_module_state->__pyx_n_s_zeros);
   Py_VISIT(traverse_module_state->__pyx_int_1);
   Py_VISIT(traverse_module_state->__pyx_int_2);
-  Py_VISIT(traverse_module_state->__pyx_int_20);
-  Py_VISIT(traverse_module_state->__pyx_int_24);
+  Py_VISIT(traverse_module_state->__pyx_int_12);
   Py_VISIT(traverse_module_state->__pyx_int_32);
   Py_VISIT(traverse_module_state->__pyx_int_64);
   Py_VISIT(traverse_module_state->__pyx_tuple_);
@@ -3233,6 +3230,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_deepcopy __pyx_mstate_global->__pyx_n_s_deepcopy
 #define __pyx_n_s_dequantize __pyx_mstate_global->__pyx_n_s_dequantize
 #define __pyx_n_s_dequantize_array __pyx_mstate_global->__pyx_n_s_dequantize_array
+#define __pyx_n_s_divide __pyx_mstate_global->__pyx_n_s_divide
 #define __pyx_n_s_dtype __pyx_mstate_global->__pyx_n_s_dtype
 #define __pyx_n_s_float __pyx_mstate_global->__pyx_n_s_float
 #define __pyx_n_s_float64 __pyx_mstate_global->__pyx_n_s_float64
@@ -3268,7 +3266,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_result __pyx_mstate_global->__pyx_n_s_result
 #define __pyx_n_s_return __pyx_mstate_global->__pyx_n_s_return
 #define __pyx_n_s_rmatmul __pyx_mstate_global->__pyx_n_s_rmatmul
-#define __pyx_n_s_round __pyx_mstate_global->__pyx_n_s_round
 #define __pyx_n_s_scale __pyx_mstate_global->__pyx_n_s_scale
 #define __pyx_n_s_scale_amount __pyx_mstate_global->__pyx_n_s_scale_amount
 #define __pyx_n_s_shift __pyx_mstate_global->__pyx_n_s_shift
@@ -3277,13 +3274,12 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_test __pyx_mstate_global->__pyx_n_s_test
 #define __pyx_n_s_value __pyx_mstate_global->__pyx_n_s_value
 #define __pyx_n_s_x_decode __pyx_mstate_global->__pyx_n_s_x_decode
-#define __pyx_n_s_x_icnput __pyx_mstate_global->__pyx_n_s_x_icnput
+#define __pyx_n_s_x_input __pyx_mstate_global->__pyx_n_s_x_input
 #define __pyx_n_s_x_scaled __pyx_mstate_global->__pyx_n_s_x_scaled
 #define __pyx_n_s_zeros __pyx_mstate_global->__pyx_n_s_zeros
 #define __pyx_int_1 __pyx_mstate_global->__pyx_int_1
 #define __pyx_int_2 __pyx_mstate_global->__pyx_int_2
-#define __pyx_int_20 __pyx_mstate_global->__pyx_int_20
-#define __pyx_int_24 __pyx_mstate_global->__pyx_int_24
+#define __pyx_int_12 __pyx_mstate_global->__pyx_int_12
 #define __pyx_int_32 __pyx_mstate_global->__pyx_int_32
 #define __pyx_int_64 __pyx_mstate_global->__pyx_int_64
 #define __pyx_tuple_ __pyx_mstate_global->__pyx_tuple_
@@ -4993,7 +4989,7 @@ static CYTHON_INLINE NPY_DATETIMEUNIT __pyx_f_5numpy_get_datetime64_unit(PyObjec
 }
 
 /* "quantize_helpers.pyx":15
- * Z_SCALE = 24  # measurement values
+ * Z_SCALE = 12  # measurement values
  * 
  * def quantize(double value, double scale = Q_BITS) -> int:             # <<<<<<<<<<<<<<
  *     """Quantize a float to fixed-point int."""
@@ -5336,7 +5332,7 @@ static PyObject *__pyx_pf_16quantize_helpers_quantize(CYTHON_UNUSED PyObject *__
   goto __pyx_L0;
 
   /* "quantize_helpers.pyx":15
- * Z_SCALE = 24  # measurement values
+ * Z_SCALE = 12  # measurement values
  * 
  * def quantize(double value, double scale = Q_BITS) -> int:             # <<<<<<<<<<<<<<
  *     """Quantize a float to fixed-point int."""
@@ -5592,7 +5588,7 @@ static PyObject *__pyx_pf_16quantize_helpers_2dequantize(CYTHON_UNUSED PyObject 
  * 
  * def quantize_array(cnp.ndarray arr, int scale = Q_BITS):             # <<<<<<<<<<<<<<
  *     """Quantize a float array to fixed-point int array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(arr), dtype=np.float64)
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(arr), dtype=np.float64)
  */
 
 static PyObject *__pyx_pf_16quantize_helpers_16__defaults__(CYTHON_UNUSED PyObject *__pyx_self) {
@@ -5759,7 +5755,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
 }
 
 static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_arr, int __pyx_v_scale) {
-  PyArrayObject *__pyx_v_x_icnput = 0;
+  PyArrayObject *__pyx_v_x_input = 0;
   double __pyx_v_scale_amount;
   PyArrayObject *__pyx_v_x_scaled = 0;
   int64_t __pyx_v_q_min;
@@ -5782,9 +5778,9 @@ static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObj
   /* "quantize_helpers.pyx":38
  * def quantize_array(cnp.ndarray arr, int scale = Q_BITS):
  *     """Quantize a float array to fixed-point int array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(arr), dtype=np.float64)             # <<<<<<<<<<<<<<
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(arr), dtype=np.float64)             # <<<<<<<<<<<<<<
  *     cdef double scale_amount = 2**scale
- *     cdef cnp.ndarray x_scaled = np.round(x_icnput * scale_amount)
+ *     cdef cnp.ndarray x_scaled = np.multiply(x_input, scale_amount)
  */
   __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 38, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -5838,43 +5834,40 @@ static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObj
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   if (!(likely(((__pyx_t_6) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_6, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(1, 38, __pyx_L1_error)
-  __pyx_v_x_icnput = ((PyArrayObject *)__pyx_t_6);
+  __pyx_v_x_input = ((PyArrayObject *)__pyx_t_6);
   __pyx_t_6 = 0;
 
   /* "quantize_helpers.pyx":39
  *     """Quantize a float array to fixed-point int array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(arr), dtype=np.float64)
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(arr), dtype=np.float64)
  *     cdef double scale_amount = 2**scale             # <<<<<<<<<<<<<<
- *     cdef cnp.ndarray x_scaled = np.round(x_icnput * scale_amount)
+ *     cdef cnp.ndarray x_scaled = np.multiply(x_input, scale_amount)
  *     cdef int64_t q_min = -(2**(BITS - 1))
  */
   __pyx_v_scale_amount = pow(2.0, ((double)__pyx_v_scale));
 
   /* "quantize_helpers.pyx":40
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(arr), dtype=np.float64)
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(arr), dtype=np.float64)
  *     cdef double scale_amount = 2**scale
- *     cdef cnp.ndarray x_scaled = np.round(x_icnput * scale_amount)             # <<<<<<<<<<<<<<
+ *     cdef cnp.ndarray x_scaled = np.multiply(x_input, scale_amount)             # <<<<<<<<<<<<<<
  *     cdef int64_t q_min = -(2**(BITS - 1))
  *     cdef int64_t q_max = (2**(BITS - 1) - 1)
  */
   __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 40, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_round); if (unlikely(!__pyx_t_4)) __PYX_ERR(1, 40, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_multiply); if (unlikely(!__pyx_t_4)) __PYX_ERR(1, 40, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_t_1 = PyFloat_FromDouble(__pyx_v_scale_amount); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 40, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = PyNumber_Multiply(((PyObject *)__pyx_v_x_icnput), __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 40, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = NULL;
+  __pyx_t_2 = NULL;
   __pyx_t_5 = 0;
   #if CYTHON_UNPACK_METHODS
   if (unlikely(PyMethod_Check(__pyx_t_4))) {
-    __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_4);
-    if (likely(__pyx_t_1)) {
+    __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_4);
+    if (likely(__pyx_t_2)) {
       PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_4);
-      __Pyx_INCREF(__pyx_t_1);
+      __Pyx_INCREF(__pyx_t_2);
       __Pyx_INCREF(function);
       __Pyx_DECREF_SET(__pyx_t_4, function);
       __pyx_t_5 = 1;
@@ -5882,10 +5875,10 @@ static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObj
   }
   #endif
   {
-    PyObject *__pyx_callargs[2] = {__pyx_t_1, __pyx_t_2};
-    __pyx_t_6 = __Pyx_PyObject_FastCall(__pyx_t_4, __pyx_callargs+1-__pyx_t_5, 1+__pyx_t_5);
-    __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    PyObject *__pyx_callargs[3] = {__pyx_t_2, ((PyObject *)__pyx_v_x_input), __pyx_t_1};
+    __pyx_t_6 = __Pyx_PyObject_FastCall(__pyx_t_4, __pyx_callargs+1-__pyx_t_5, 2+__pyx_t_5);
+    __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     if (unlikely(!__pyx_t_6)) __PYX_ERR(1, 40, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
@@ -5896,7 +5889,7 @@ static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObj
 
   /* "quantize_helpers.pyx":41
  *     cdef double scale_amount = 2**scale
- *     cdef cnp.ndarray x_scaled = np.round(x_icnput * scale_amount)
+ *     cdef cnp.ndarray x_scaled = np.multiply(x_input, scale_amount)
  *     cdef int64_t q_min = -(2**(BITS - 1))             # <<<<<<<<<<<<<<
  *     cdef int64_t q_max = (2**(BITS - 1) - 1)
  * 
@@ -5917,7 +5910,7 @@ static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObj
   __pyx_v_q_min = __pyx_t_7;
 
   /* "quantize_helpers.pyx":42
- *     cdef cnp.ndarray x_scaled = np.round(x_icnput * scale_amount)
+ *     cdef cnp.ndarray x_scaled = np.multiply(x_input, scale_amount)
  *     cdef int64_t q_min = -(2**(BITS - 1))
  *     cdef int64_t q_max = (2**(BITS - 1) - 1)             # <<<<<<<<<<<<<<
  * 
@@ -5946,41 +5939,41 @@ static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObj
  * def dequantize_array(cnp.ndarray q_arr, int scale = Q_BITS):
  */
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 44, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_clip); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 44, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 44, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyInt_From_int64_t(__pyx_v_q_min); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 44, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_clip); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 44, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_1 = __Pyx_PyInt_From_int64_t(__pyx_v_q_min); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 44, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
   __pyx_t_3 = __Pyx_PyInt_From_int64_t(__pyx_v_q_max); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 44, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_8 = NULL;
   __pyx_t_5 = 0;
   #if CYTHON_UNPACK_METHODS
-  if (unlikely(PyMethod_Check(__pyx_t_1))) {
-    __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_1);
+  if (unlikely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_2);
     if (likely(__pyx_t_8)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_1);
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
       __Pyx_INCREF(__pyx_t_8);
       __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_1, function);
+      __Pyx_DECREF_SET(__pyx_t_2, function);
       __pyx_t_5 = 1;
     }
   }
   #endif
   {
-    PyObject *__pyx_callargs[4] = {__pyx_t_8, ((PyObject *)__pyx_v_x_scaled), __pyx_t_2, __pyx_t_3};
-    __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_1, __pyx_callargs+1-__pyx_t_5, 3+__pyx_t_5);
+    PyObject *__pyx_callargs[4] = {__pyx_t_8, ((PyObject *)__pyx_v_x_scaled), __pyx_t_1, __pyx_t_3};
+    __pyx_t_4 = __Pyx_PyObject_FastCall(__pyx_t_2, __pyx_callargs+1-__pyx_t_5, 3+__pyx_t_5);
     __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     if (unlikely(!__pyx_t_4)) __PYX_ERR(1, 44, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   }
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_astype); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 44, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_astype); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 44, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(1, 44, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
@@ -5990,25 +5983,25 @@ static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObj
   __pyx_t_4 = NULL;
   __pyx_t_5 = 0;
   #if CYTHON_UNPACK_METHODS
-  if (likely(PyMethod_Check(__pyx_t_1))) {
-    __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_1);
+  if (likely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_2);
     if (likely(__pyx_t_4)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_1);
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
       __Pyx_INCREF(__pyx_t_4);
       __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_1, function);
+      __Pyx_DECREF_SET(__pyx_t_2, function);
       __pyx_t_5 = 1;
     }
   }
   #endif
   {
     PyObject *__pyx_callargs[2] = {__pyx_t_4, __pyx_t_3};
-    __pyx_t_6 = __Pyx_PyObject_FastCall(__pyx_t_1, __pyx_callargs+1-__pyx_t_5, 1+__pyx_t_5);
+    __pyx_t_6 = __Pyx_PyObject_FastCall(__pyx_t_2, __pyx_callargs+1-__pyx_t_5, 1+__pyx_t_5);
     __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     if (unlikely(!__pyx_t_6)) __PYX_ERR(1, 44, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   }
   __pyx_r = __pyx_t_6;
   __pyx_t_6 = 0;
@@ -6019,7 +6012,7 @@ static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObj
  * 
  * def quantize_array(cnp.ndarray arr, int scale = Q_BITS):             # <<<<<<<<<<<<<<
  *     """Quantize a float array to fixed-point int array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(arr), dtype=np.float64)
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(arr), dtype=np.float64)
  */
 
   /* function exit code */
@@ -6033,7 +6026,7 @@ static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObj
   __Pyx_AddTraceback("quantize_helpers.quantize_array", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
-  __Pyx_XDECREF((PyObject *)__pyx_v_x_icnput);
+  __Pyx_XDECREF((PyObject *)__pyx_v_x_input);
   __Pyx_XDECREF((PyObject *)__pyx_v_x_scaled);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
@@ -6045,7 +6038,7 @@ static PyObject *__pyx_pf_16quantize_helpers_4quantize_array(CYTHON_UNUSED PyObj
  * 
  * def dequantize_array(cnp.ndarray q_arr, int scale = Q_BITS):             # <<<<<<<<<<<<<<
  *     """Dequantize a fixed-point int array to float array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(q_arr))
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(q_arr))
  */
 
 static PyObject *__pyx_pf_16quantize_helpers_18__defaults__(CYTHON_UNUSED PyObject *__pyx_self) {
@@ -6212,7 +6205,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
 }
 
 static PyObject *__pyx_pf_16quantize_helpers_6dequantize_array(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_q_arr, int __pyx_v_scale) {
-  PyArrayObject *__pyx_v_x_icnput = 0;
+  PyArrayObject *__pyx_v_x_input = 0;
   double __pyx_v_scale_amount;
   PyArrayObject *__pyx_v_x_decode = 0;
   PyObject *__pyx_r = NULL;
@@ -6231,9 +6224,9 @@ static PyObject *__pyx_pf_16quantize_helpers_6dequantize_array(CYTHON_UNUSED PyO
   /* "quantize_helpers.pyx":48
  * def dequantize_array(cnp.ndarray q_arr, int scale = Q_BITS):
  *     """Dequantize a fixed-point int array to float array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(q_arr))             # <<<<<<<<<<<<<<
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(q_arr))             # <<<<<<<<<<<<<<
  *     cdef double scale_amount = 2**scale
- *     cdef cnp.ndarray x_decode = x_icnput / scale_amount
+ *     cdef cnp.ndarray x_decode = np.divide(x_input, scale_amount)
  */
   __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 48, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -6291,74 +6284,99 @@ static PyObject *__pyx_pf_16quantize_helpers_6dequantize_array(CYTHON_UNUSED PyO
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   }
   if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(1, 48, __pyx_L1_error)
-  __pyx_v_x_icnput = ((PyArrayObject *)__pyx_t_1);
+  __pyx_v_x_input = ((PyArrayObject *)__pyx_t_1);
   __pyx_t_1 = 0;
 
   /* "quantize_helpers.pyx":49
  *     """Dequantize a fixed-point int array to float array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(q_arr))
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(q_arr))
  *     cdef double scale_amount = 2**scale             # <<<<<<<<<<<<<<
- *     cdef cnp.ndarray x_decode = x_icnput / scale_amount
+ *     cdef cnp.ndarray x_decode = np.divide(x_input, scale_amount)
  *     return x_decode.astype(np.float64)
  */
   __pyx_v_scale_amount = pow(2.0, ((double)__pyx_v_scale));
 
   /* "quantize_helpers.pyx":50
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(q_arr))
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(q_arr))
  *     cdef double scale_amount = 2**scale
- *     cdef cnp.ndarray x_decode = x_icnput / scale_amount             # <<<<<<<<<<<<<<
+ *     cdef cnp.ndarray x_decode = np.divide(x_input, scale_amount)             # <<<<<<<<<<<<<<
  *     return x_decode.astype(np.float64)
  * 
  */
-  __pyx_t_1 = PyFloat_FromDouble(__pyx_v_scale_amount); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 50, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = __Pyx_PyNumber_Divide(((PyObject *)__pyx_v_x_icnput), __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 50, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 50, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (!(likely(((__pyx_t_3) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_3, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(1, 50, __pyx_L1_error)
-  __pyx_v_x_decode = ((PyArrayObject *)__pyx_t_3);
-  __pyx_t_3 = 0;
-
-  /* "quantize_helpers.pyx":51
- *     cdef double scale_amount = 2**scale
- *     cdef cnp.ndarray x_decode = x_icnput / scale_amount
- *     return x_decode.astype(np.float64)             # <<<<<<<<<<<<<<
- * 
- * def q_mul(a_q, b_q, int a_scale = Q_BITS,
- */
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_x_decode), __pyx_n_s_astype); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 51, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 51, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_divide); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 50, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_float64); if (unlikely(!__pyx_t_5)) __PYX_ERR(1, 51, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = NULL;
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_t_3 = PyFloat_FromDouble(__pyx_v_scale_amount); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 50, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_5 = NULL;
   __pyx_t_6 = 0;
   #if CYTHON_UNPACK_METHODS
-  if (likely(PyMethod_Check(__pyx_t_1))) {
-    __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_1);
-    if (likely(__pyx_t_2)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_1);
-      __Pyx_INCREF(__pyx_t_2);
+  if (unlikely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_2);
+    if (likely(__pyx_t_5)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+      __Pyx_INCREF(__pyx_t_5);
       __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_1, function);
+      __Pyx_DECREF_SET(__pyx_t_2, function);
       __pyx_t_6 = 1;
     }
   }
   #endif
   {
-    PyObject *__pyx_callargs[2] = {__pyx_t_2, __pyx_t_5};
-    __pyx_t_3 = __Pyx_PyObject_FastCall(__pyx_t_1, __pyx_callargs+1-__pyx_t_6, 1+__pyx_t_6);
-    __Pyx_XDECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 51, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_3);
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    PyObject *__pyx_callargs[3] = {__pyx_t_5, ((PyObject *)__pyx_v_x_input), __pyx_t_3};
+    __pyx_t_1 = __Pyx_PyObject_FastCall(__pyx_t_2, __pyx_callargs+1-__pyx_t_6, 2+__pyx_t_6);
+    __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 50, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_1);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   }
-  __pyx_r = __pyx_t_3;
-  __pyx_t_3 = 0;
+  if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(1, 50, __pyx_L1_error)
+  __pyx_v_x_decode = ((PyArrayObject *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* "quantize_helpers.pyx":51
+ *     cdef double scale_amount = 2**scale
+ *     cdef cnp.ndarray x_decode = np.divide(x_input, scale_amount)
+ *     return x_decode.astype(np.float64)             # <<<<<<<<<<<<<<
+ * 
+ * def q_mul(a_q, b_q, int a_scale = Q_BITS,
+ */
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_x_decode), __pyx_n_s_astype); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 51, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(1, 51, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_float64); if (unlikely(!__pyx_t_5)) __PYX_ERR(1, 51, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_t_3 = NULL;
+  __pyx_t_6 = 0;
+  #if CYTHON_UNPACK_METHODS
+  if (likely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_2);
+    if (likely(__pyx_t_3)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+      __Pyx_INCREF(__pyx_t_3);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_2, function);
+      __pyx_t_6 = 1;
+    }
+  }
+  #endif
+  {
+    PyObject *__pyx_callargs[2] = {__pyx_t_3, __pyx_t_5};
+    __pyx_t_1 = __Pyx_PyObject_FastCall(__pyx_t_2, __pyx_callargs+1-__pyx_t_6, 1+__pyx_t_6);
+    __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+    if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 51, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_1);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  }
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
   goto __pyx_L0;
 
   /* "quantize_helpers.pyx":46
@@ -6366,7 +6384,7 @@ static PyObject *__pyx_pf_16quantize_helpers_6dequantize_array(CYTHON_UNUSED PyO
  * 
  * def dequantize_array(cnp.ndarray q_arr, int scale = Q_BITS):             # <<<<<<<<<<<<<<
  *     """Dequantize a fixed-point int array to float array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(q_arr))
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(q_arr))
  */
 
   /* function exit code */
@@ -6379,7 +6397,7 @@ static PyObject *__pyx_pf_16quantize_helpers_6dequantize_array(CYTHON_UNUSED PyO
   __Pyx_AddTraceback("quantize_helpers.dequantize_array", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
-  __Pyx_XDECREF((PyObject *)__pyx_v_x_icnput);
+  __Pyx_XDECREF((PyObject *)__pyx_v_x_input);
   __Pyx_XDECREF((PyObject *)__pyx_v_x_decode);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
@@ -7561,6 +7579,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_deepcopy, __pyx_k_deepcopy, sizeof(__pyx_k_deepcopy), 0, 0, 1, 1},
     {&__pyx_n_s_dequantize, __pyx_k_dequantize, sizeof(__pyx_k_dequantize), 0, 0, 1, 1},
     {&__pyx_n_s_dequantize_array, __pyx_k_dequantize_array, sizeof(__pyx_k_dequantize_array), 0, 0, 1, 1},
+    {&__pyx_n_s_divide, __pyx_k_divide, sizeof(__pyx_k_divide), 0, 0, 1, 1},
     {&__pyx_n_s_dtype, __pyx_k_dtype, sizeof(__pyx_k_dtype), 0, 0, 1, 1},
     {&__pyx_n_s_float, __pyx_k_float, sizeof(__pyx_k_float), 0, 0, 1, 1},
     {&__pyx_n_s_float64, __pyx_k_float64, sizeof(__pyx_k_float64), 0, 0, 1, 1},
@@ -7596,7 +7615,6 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_result, __pyx_k_result, sizeof(__pyx_k_result), 0, 0, 1, 1},
     {&__pyx_n_s_return, __pyx_k_return, sizeof(__pyx_k_return), 0, 0, 1, 1},
     {&__pyx_n_s_rmatmul, __pyx_k_rmatmul, sizeof(__pyx_k_rmatmul), 0, 0, 1, 1},
-    {&__pyx_n_s_round, __pyx_k_round, sizeof(__pyx_k_round), 0, 0, 1, 1},
     {&__pyx_n_s_scale, __pyx_k_scale, sizeof(__pyx_k_scale), 0, 0, 1, 1},
     {&__pyx_n_s_scale_amount, __pyx_k_scale_amount, sizeof(__pyx_k_scale_amount), 0, 0, 1, 1},
     {&__pyx_n_s_shift, __pyx_k_shift, sizeof(__pyx_k_shift), 0, 0, 1, 1},
@@ -7605,7 +7623,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
     {&__pyx_n_s_value, __pyx_k_value, sizeof(__pyx_k_value), 0, 0, 1, 1},
     {&__pyx_n_s_x_decode, __pyx_k_x_decode, sizeof(__pyx_k_x_decode), 0, 0, 1, 1},
-    {&__pyx_n_s_x_icnput, __pyx_k_x_icnput, sizeof(__pyx_k_x_icnput), 0, 0, 1, 1},
+    {&__pyx_n_s_x_input, __pyx_k_x_input, sizeof(__pyx_k_x_input), 0, 0, 1, 1},
     {&__pyx_n_s_x_scaled, __pyx_k_x_scaled, sizeof(__pyx_k_x_scaled), 0, 0, 1, 1},
     {&__pyx_n_s_zeros, __pyx_k_zeros, sizeof(__pyx_k_zeros), 0, 0, 1, 1},
     {0, 0, 0, 0, 0, 0, 0}
@@ -7648,7 +7666,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GIVEREF(__pyx_tuple__2);
 
   /* "quantize_helpers.pyx":15
- * Z_SCALE = 24  # measurement values
+ * Z_SCALE = 12  # measurement values
  * 
  * def quantize(double value, double scale = Q_BITS) -> int:             # <<<<<<<<<<<<<<
  *     """Quantize a float to fixed-point int."""
@@ -7676,9 +7694,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * def quantize_array(cnp.ndarray arr, int scale = Q_BITS):             # <<<<<<<<<<<<<<
  *     """Quantize a float array to fixed-point int array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(arr), dtype=np.float64)
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(arr), dtype=np.float64)
  */
-  __pyx_tuple__8 = PyTuple_Pack(7, __pyx_n_s_arr, __pyx_n_s_scale, __pyx_n_s_x_icnput, __pyx_n_s_scale_amount, __pyx_n_s_x_scaled, __pyx_n_s_q_min, __pyx_n_s_q_max); if (unlikely(!__pyx_tuple__8)) __PYX_ERR(1, 36, __pyx_L1_error)
+  __pyx_tuple__8 = PyTuple_Pack(7, __pyx_n_s_arr, __pyx_n_s_scale, __pyx_n_s_x_input, __pyx_n_s_scale_amount, __pyx_n_s_x_scaled, __pyx_n_s_q_min, __pyx_n_s_q_max); if (unlikely(!__pyx_tuple__8)) __PYX_ERR(1, 36, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__8);
   __Pyx_GIVEREF(__pyx_tuple__8);
   __pyx_codeobj__9 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__8, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_cython_quantize_helpers_pyx, __pyx_n_s_quantize_array, 36, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__9)) __PYX_ERR(1, 36, __pyx_L1_error)
@@ -7688,9 +7706,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * def dequantize_array(cnp.ndarray q_arr, int scale = Q_BITS):             # <<<<<<<<<<<<<<
  *     """Dequantize a fixed-point int array to float array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(q_arr))
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(q_arr))
  */
-  __pyx_tuple__10 = PyTuple_Pack(5, __pyx_n_s_q_arr, __pyx_n_s_scale, __pyx_n_s_x_icnput, __pyx_n_s_scale_amount, __pyx_n_s_x_decode); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(1, 46, __pyx_L1_error)
+  __pyx_tuple__10 = PyTuple_Pack(5, __pyx_n_s_q_arr, __pyx_n_s_scale, __pyx_n_s_x_input, __pyx_n_s_scale_amount, __pyx_n_s_x_decode); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(1, 46, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__10);
   __Pyx_GIVEREF(__pyx_tuple__10);
   __pyx_codeobj__11 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__10, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_cython_quantize_helpers_pyx, __pyx_n_s_dequantize_array, 46, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__11)) __PYX_ERR(1, 46, __pyx_L1_error)
@@ -7730,8 +7748,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitConstants(void) {
   if (__Pyx_CreateStringTabAndInitStrings() < 0) __PYX_ERR(1, 1, __pyx_L1_error);
   __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) __PYX_ERR(1, 1, __pyx_L1_error)
   __pyx_int_2 = PyInt_FromLong(2); if (unlikely(!__pyx_int_2)) __PYX_ERR(1, 1, __pyx_L1_error)
-  __pyx_int_20 = PyInt_FromLong(20); if (unlikely(!__pyx_int_20)) __PYX_ERR(1, 1, __pyx_L1_error)
-  __pyx_int_24 = PyInt_FromLong(24); if (unlikely(!__pyx_int_24)) __PYX_ERR(1, 1, __pyx_L1_error)
+  __pyx_int_12 = PyInt_FromLong(12); if (unlikely(!__pyx_int_12)) __PYX_ERR(1, 1, __pyx_L1_error)
   __pyx_int_32 = PyInt_FromLong(32); if (unlikely(!__pyx_int_32)) __PYX_ERR(1, 1, __pyx_L1_error)
   __pyx_int_64 = PyInt_FromLong(64); if (unlikely(!__pyx_int_64)) __PYX_ERR(1, 1, __pyx_L1_error)
   return 0;
@@ -8192,41 +8209,41 @@ if (!__Pyx_RefNanny) {
   /* "quantize_helpers.pyx":10
  * 
  * # Explicit domain scales
- * X_SCALE = 24  # state values             # <<<<<<<<<<<<<<
- * P_SCALE = 20  # covariance values (larger dynamic range)
- * H_SCALE = 24  # measurement matrix values (usually 1, but we use same unit)
+ * X_SCALE = 12  # state values             # <<<<<<<<<<<<<<
+ * P_SCALE = 12  # covariance values (larger dynamic range)
+ * H_SCALE = 12  # measurement matrix values (usually 1, but we use same unit)
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_X_SCALE, __pyx_int_24) < 0) __PYX_ERR(1, 10, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_X_SCALE, __pyx_int_12) < 0) __PYX_ERR(1, 10, __pyx_L1_error)
 
   /* "quantize_helpers.pyx":11
  * # Explicit domain scales
- * X_SCALE = 24  # state values
- * P_SCALE = 20  # covariance values (larger dynamic range)             # <<<<<<<<<<<<<<
- * H_SCALE = 24  # measurement matrix values (usually 1, but we use same unit)
- * Z_SCALE = 24  # measurement values
+ * X_SCALE = 12  # state values
+ * P_SCALE = 12  # covariance values (larger dynamic range)             # <<<<<<<<<<<<<<
+ * H_SCALE = 12  # measurement matrix values (usually 1, but we use same unit)
+ * Z_SCALE = 12  # measurement values
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_P_SCALE, __pyx_int_20) < 0) __PYX_ERR(1, 11, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_P_SCALE, __pyx_int_12) < 0) __PYX_ERR(1, 11, __pyx_L1_error)
 
   /* "quantize_helpers.pyx":12
- * X_SCALE = 24  # state values
- * P_SCALE = 20  # covariance values (larger dynamic range)
- * H_SCALE = 24  # measurement matrix values (usually 1, but we use same unit)             # <<<<<<<<<<<<<<
- * Z_SCALE = 24  # measurement values
+ * X_SCALE = 12  # state values
+ * P_SCALE = 12  # covariance values (larger dynamic range)
+ * H_SCALE = 12  # measurement matrix values (usually 1, but we use same unit)             # <<<<<<<<<<<<<<
+ * Z_SCALE = 12  # measurement values
  * 
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_H_SCALE, __pyx_int_24) < 0) __PYX_ERR(1, 12, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_H_SCALE, __pyx_int_12) < 0) __PYX_ERR(1, 12, __pyx_L1_error)
 
   /* "quantize_helpers.pyx":13
- * P_SCALE = 20  # covariance values (larger dynamic range)
- * H_SCALE = 24  # measurement matrix values (usually 1, but we use same unit)
- * Z_SCALE = 24  # measurement values             # <<<<<<<<<<<<<<
+ * P_SCALE = 12  # covariance values (larger dynamic range)
+ * H_SCALE = 12  # measurement matrix values (usually 1, but we use same unit)
+ * Z_SCALE = 12  # measurement values             # <<<<<<<<<<<<<<
  * 
  * def quantize(double value, double scale = Q_BITS) -> int:
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_Z_SCALE, __pyx_int_24) < 0) __PYX_ERR(1, 13, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_Z_SCALE, __pyx_int_12) < 0) __PYX_ERR(1, 13, __pyx_L1_error)
 
   /* "quantize_helpers.pyx":15
- * Z_SCALE = 24  # measurement values
+ * Z_SCALE = 12  # measurement values
  * 
  * def quantize(double value, double scale = Q_BITS) -> int:             # <<<<<<<<<<<<<<
  *     """Quantize a float to fixed-point int."""
@@ -8278,7 +8295,7 @@ if (!__Pyx_RefNanny) {
  * 
  * def quantize_array(cnp.ndarray arr, int scale = Q_BITS):             # <<<<<<<<<<<<<<
  *     """Quantize a float array to fixed-point int array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(arr), dtype=np.float64)
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(arr), dtype=np.float64)
  */
   __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_16quantize_helpers_5quantize_array, 0, __pyx_n_s_quantize_array, NULL, __pyx_n_s_quantize_helpers, __pyx_d, ((PyObject *)__pyx_codeobj__9)); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 36, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -8297,7 +8314,7 @@ if (!__Pyx_RefNanny) {
  * 
  * def dequantize_array(cnp.ndarray q_arr, int scale = Q_BITS):             # <<<<<<<<<<<<<<
  *     """Dequantize a fixed-point int array to float array."""
- *     cdef cnp.ndarray x_icnput = np.asarray(copy.deepcopy(q_arr))
+ *     cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(q_arr))
  */
   __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_16quantize_helpers_7dequantize_array, 0, __pyx_n_s_dequantize_array, NULL, __pyx_n_s_quantize_helpers, __pyx_d, ((PyObject *)__pyx_codeobj__11)); if (unlikely(!__pyx_t_2)) __PYX_ERR(1, 46, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
