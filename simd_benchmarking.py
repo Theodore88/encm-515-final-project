@@ -164,6 +164,18 @@ def generate_dimension_plots(all_results: list[dict]):
     plt.savefig(os.path.join(output_dir, "speedup_vs_dimension.png"), dpi=200)
     plt.close()
 
+    plt.figure()
+    n_cubed = [n**3 for n in state_dims]
+    plt.plot(n_cubed, simd_speedups, marker="o")
+    plt.xscale("log")
+    plt.xlabel("N^3 (log scale)")
+    plt.ylabel("Speedup vs Scalar")
+    plt.title("SIMD Speedup vs Computational Work (N^3)")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "speedup_vs_n_cubed.png"), dpi=200)
+    plt.close()
+
     print(f"Saved plots to {output_dir}")
 
 if __name__ == "__main__":
