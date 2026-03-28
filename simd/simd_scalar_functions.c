@@ -12,11 +12,11 @@
  */
 
 static inline double hsum256_pd(__m256d vector) {
-    __m128d high_half = _mm256_extractf128_pd(vector, 1);
-    __m128d low_half = _mm256_castpd256_pd128(vector);
-    __m128d pairwise_sum = _mm_add_pd(low_half, high_half);
-    __m128d swapped = _mm_unpackhi_pd(pairwise_sum, pairwise_sum);
-    __m128d total_sum = _mm_add_sd(pairwise_sum, swapped);
+    __m128d top_half_sum = _mm256_extractf128_pd(vector, 1);
+    __m128d bottom_half_sum = _mm256_castpd256_pd128(vector);
+    __m128d pair_sum = _mm_add_pd(bottom_half_sum, top_half_sum);
+    __m128d swapped = _mm_unpackhi_pd(pair_sum, pair_sum);
+    __m128d total_sum = _mm_add_sd(pair_sum, swapped);
     return _mm_cvtsd_f64(total_sum);
 }
 
@@ -120,7 +120,13 @@ void matrix_multiply_simd(const double* matrix_A, const double* matrix_B, double
                 element += 4;
             }
 
-            double total_sum = hsum256_pd(accumulated_sum);
+            // Sum all 4 values in accumulated_sum vector (get final dot product for current row and column)
+            __m128d top_half_sum = _mm256_extractf128_pd(accumulated_sum, 1);
+            __m128d bottom_half_sum = _mm256_castpd256_pd128(accumulated_sum);
+            __m128d pair_sum = _mm_add_pd(bottom_half_sum, top_half_sum); // Add the top and bottom halves of the vector together [a, b] + [c, d] = [a + c, b + d]
+            __m128d swapped = _mm_unpackhi_pd(pair_sum, pair_sum); // Get b + d into the lower elements of the register
+            __m128d reduced_sum = _mm_add_sd(pair_sum, swapped); // add it all (only adds bottom 2 which is why we swapped in the previous step)
+            double total_sum = _mm_cvtsd_f64(reduced_sum); // extract into double
 
             while (element < N) {
                 total_sum += matrix_A_row[element] * matrix_B_transpose_row[element];
