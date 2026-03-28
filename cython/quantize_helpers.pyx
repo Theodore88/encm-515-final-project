@@ -1,3 +1,6 @@
+# Helped from google gemini
+
+
 import numpy as np
 import copy
 cimport numpy as cnp
@@ -8,17 +11,19 @@ Q_BITS = 32
 
 # Explicit domain scales
 X_SCALE = 12  # state values
-P_SCALE = 12  # covariance values (larger dynamic range)
+P_SCALE = 14  # covariance values (larger dynamic range)
 H_SCALE = 12  # measurement matrix values (usually 1, but we use same unit)
 Z_SCALE = 12  # measurement values
+
+# Assuming BITS is defined earlier, e.g., cdef int BITS = 64
+q_min = -((<int64_t>1) << (BITS - 1))
+q_max = (((<int64_t>1) << (BITS - 1)) - 1)
 
 def quantize(double value, double scale = Q_BITS) -> int:
     """Quantize a float to fixed-point int."""
     cdef double q_copy = value
     cdef double scale_amount = 2**scale
     cdef double x_scaled = q_copy * scale_amount
-    cdef int64_t q_min = -(2**(BITS - 1))
-    cdef int64_t q_max = (2**(BITS - 1) - 1)
 
     if x_scaled < q_min:
         return int(q_min)
@@ -35,25 +40,22 @@ def dequantize(int q_value, double scale = Q_BITS) -> float:
 
 def quantize_array(cnp.ndarray arr, int scale = Q_BITS):
     """Quantize a float array to fixed-point int array."""
-    cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(arr), dtype=np.float64)
+    cdef cnp.ndarray x_input = np.asarray(arr, dtype=np.float64)
     cdef double scale_amount = 2**scale
     cdef cnp.ndarray x_scaled = np.multiply(x_input, scale_amount)
-    cdef int64_t q_min = -(2**(BITS - 1))
-    cdef int64_t q_max = (2**(BITS - 1) - 1)
     
     return np.clip(x_scaled, q_min, q_max).astype(np.int64)
 
 def dequantize_array(cnp.ndarray q_arr, int scale = Q_BITS):
     """Dequantize a fixed-point int array to float array."""
-    cdef cnp.ndarray x_input = np.asarray(copy.deepcopy(q_arr))
+    cdef cnp.ndarray x_input = np.asarray(q_arr)
     cdef double scale_amount = 2**scale
     cdef cnp.ndarray x_decode = np.divide(x_input, scale_amount)
     return x_decode.astype(np.float64)
 
 def q_mul(a_q, b_q, int a_scale = Q_BITS,
           int b_scale = Q_BITS, int out_scale = Q_BITS):
-    cdef int64_t q_min = -(2**(BITS - 1))
-    cdef int64_t q_max = (2**(BITS - 1) - 1)
+
     cdef int shift = a_scale + b_scale - out_scale
     cdef object product
     cdef int64_t shifted
@@ -64,8 +66,7 @@ def q_mul(a_q, b_q, int a_scale = Q_BITS,
     product = np.multiply(A_in, B_in)
     shift = a_scale + b_scale - out_scale
     result = product >> shift
-    q_min = -(2**(BITS - 1))
-    q_max = (2**(BITS - 1) - 1)
+
     return np.clip(result, q_min, q_max).astype(np.int64)
 
 
