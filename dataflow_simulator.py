@@ -36,7 +36,7 @@ from sensor_models import (
 from kalman_filter import DroneEKF as DroneEKFFloat
 from kalman_filter_quantize import DroneEKF as DroneEKFQuant
 from kalman_filter import PipelineMetrics, KalmanState, EXPECTED_RATES_MAP
-
+import quantize_helpers as qh_module
 # Pipeline stage costs (ticks at CLOCK_MHZ)
 
 CLOCK_MHZ = 1.0   # 1 tick = 1 µs
@@ -173,7 +173,7 @@ class MultiStreamSimulator:
       6. Record metrics.
     """
 
-    def __init__(self, duration_s: float = 5.0, seed: int = 42, quantized: bool = False, cython: bool = False, simd: bool = False):
+    def __init__(self, duration_s: float = 5.0, seed: int = 42, quantized: bool = False, simd: bool = False):
         self.duration_s = duration_s
         self.sim_dt     = 1.0 / IMUSensor.UPDATE_RATE_HZ
         self.rng        = np.random.default_rng(seed)
@@ -186,13 +186,10 @@ class MultiStreamSimulator:
         self.quantized = quantized
         self.simd = simd
 
-        if cython:
-            import quantize_helpers as qh_module
-        else:
-            import quantize_helpers_python as qh_module
+
         self.qh = qh_module
         if quantized:
-            self.ekf = DroneEKFQuant(cython=cython)
+            self.ekf = DroneEKFQuant(cython=True)
         else:
             self.ekf = DroneEKFFloat(simd)
         self.pipeline = FourStagePipeline()
