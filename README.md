@@ -26,6 +26,17 @@ Computes and prints analysis of pipeline
 - Hazard count and hazard rate per sensor
 - Latency vs Throughput trade-off table
 
+# `partition_simulator.py`
+Models CPU/accelerator workload partitioning for the EKF pipeline at a given bus frequency.
+- Evaluates four partitioning schemes: All-CPU, Kalman-Gain-Only, Heavy-Matrix-On-ACCEL, Predict-Block-On-ACCEL
+- Computes per-scheme compute latency, transfer overhead, total latency, speedup, and boundary crossing count
+- Bus transfer costs follow Aung et al.: 10 cycles/write, 18 cycles/read at a configurable bus frequency (default 100 MHz)
+- Word counts derived from STATE_DIM=9 EKF matrix dimensions (consistent with kalman_filter.py)
+- Speedup factors sourced from SIMD benchmarking results (cov_predict: 1.18x) and Aung et al. (kalman_gain: 5.7x)
+- Generates three plots: latency vs bus frequency, compute vs transfer stacked breakdown, optimal partition map by bus frequency
+Usage:
+    `python partition_simulator.py`
+
 # `visualisation.py` 
 Outputs 8 saved plots including: 
 - Sensor stream overview 
