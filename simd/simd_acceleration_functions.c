@@ -1,4 +1,4 @@
-#include "simd_scalar_functions.h"
+#include "simd_acceleration_functions.h"
 #include <immintrin.h>
 #include <stdlib.h>
 
@@ -10,15 +10,6 @@
  * _mm256_add_pd: Add two vector registers at one time (https://acl.inf.ethz.ch/teaching/fastcode/2022/slides/07-simd-avx.pdf, https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_add_pd&ig_expand=119)
  * _mm256_fmadd_pd: Multiplies the first two arguments and then adds it to the third argument (https://doc.rust-lang.org/beta/core/arch/x86_64/fn._mm256_fmadd_pd.html)
  */
-
-static inline double hsum256_pd(__m256d vector) {
-    __m128d top_half_sum = _mm256_extractf128_pd(vector, 1);
-    __m128d bottom_half_sum = _mm256_castpd256_pd128(vector);
-    __m128d pair_sum = _mm_add_pd(bottom_half_sum, top_half_sum);
-    __m128d swapped = _mm_unpackhi_pd(pair_sum, pair_sum);
-    __m128d total_sum = _mm_add_sd(pair_sum, swapped);
-    return _mm_cvtsd_f64(total_sum);
-}
 
 void matrix_transpose(const double* matrix, double* transpose_matrix, int N) {
     for (int row = 0; row < N; ++row) {

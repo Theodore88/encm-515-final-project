@@ -9,7 +9,7 @@
             "C:\\Users\\lmah8\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\numpy\\core\\include\\numpy\\ndarrayobject.h",
             "C:\\Users\\lmah8\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\numpy\\core\\include\\numpy\\ndarraytypes.h",
             "C:\\Users\\lmah8\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\numpy\\core\\include\\numpy\\ufuncobject.h",
-            "simd_scalar_functions.h"
+            "simd_acceleration_functions.h"
         ],
         "include_dirs": [
             "C:\\Users\\lmah8\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\numpy\\core\\include"
@@ -17,7 +17,7 @@
         "name": "ekf_functions",
         "sources": [
             "ekf_functions.pyx",
-            "simd_scalar_functions.c"
+            "simd_acceleration_functions.c"
         ]
     },
     "module_name": "ekf_functions"
@@ -1151,7 +1151,7 @@ static int __Pyx_init_co_variables(void) {
 #include "numpy/ndarraytypes.h"
 #include "numpy/arrayscalars.h"
 #include "numpy/ufuncobject.h"
-#include "simd_scalar_functions.h"
+#include "simd_acceleration_functions.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif /* _OPENMP */
@@ -6954,7 +6954,7 @@ __Pyx_RefNannySetupContext("PyInit_ekf_functions", 0);
  * 
  * cnp.import_array()             # <<<<<<<<<<<<<<
  * 
- * cdef extern from "simd_scalar_functions.h":
+ * cdef extern from "simd_acceleration_functions.h":
 */
   __pyx_t_3 = __pyx_f_5numpy_import_array(); if (unlikely(__pyx_t_3 == ((int)-1))) __PYX_ERR(0, 4, __pyx_L1_error)
 
