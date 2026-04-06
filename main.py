@@ -48,7 +48,7 @@ def main():
     print()
 
     # Run simulation 
-    sim    = MultiStreamSimulator(duration_s=args.duration, seed=args.seed, quantized=args.quantized, cython=args.cython_quantized, simd=args.simd)
+    sim    = MultiStreamSimulator(duration_s=args.duration, seed=args.seed, quantized=args.quantized, simd=args.simd)
     result = sim.run(verbose=True)
 
     # Analyse pipeline 

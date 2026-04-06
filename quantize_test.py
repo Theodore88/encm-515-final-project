@@ -9,7 +9,7 @@ from pipeline_analysis   import analyse
 def main():
 
     # Run simulation 
-    base_sim    = MultiStreamSimulator(duration_s=10, seed=42, quantized=False, cython=False)
+    base_sim    = MultiStreamSimulator(duration_s=10, seed=42, quantized=False)
 
     t0 = time.time() 
     base_result = base_sim.run(verbose=False)
@@ -21,7 +21,7 @@ def main():
     print(f"Mean Velocity Error (Base): {base_result['accuracy']['vel_mean_err_ms']:.6f}")
 
 
-    quant_sim = MultiStreamSimulator(duration_s=10, seed=42, quantized=True, cython=True)
+    quant_sim = MultiStreamSimulator(duration_s=10, seed=42, quantized=True)
     quant_sim.qh.X_SCALE = 20 # state values
     quant_sim.qh.P_SCALE = 24  # covariance values (larger dynamic range
     quant_sim.qh.H_SCALE = 20 # measurement matrix values (usually 1, but we use same unit)
