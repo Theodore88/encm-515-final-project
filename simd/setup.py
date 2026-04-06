@@ -5,7 +5,7 @@ import numpy as np
 extensions = [
     Extension(
         name="ekf_functions",
-        sources=["ekf_functions.pyx", "simd_scalar_functions.c"],
+        sources=["ekf_functions.pyx", "simd_acceleration_functions.c"],
         include_dirs=[np.get_include()],
     )
 ]

@@ -3,7 +3,7 @@ cimport numpy as cnp
 
 cnp.import_array()
 
-cdef extern from "simd_scalar_functions.h":
+cdef extern from "simd_acceleration_functions.h":
     void c_matrix_transpose "matrix_transpose"(const double* matrix, double* transpose_matrix, int N)
     void c_matrix_add_scalar "matrix_add_scalar"(const double* matrix_A, const double* matrix_B, double* total_sum, int N)
     void c_matrix_multiply_scalar "matrix_multiply_scalar"(const double* matrix_A, const double* matrix_B, double* product, int N)
