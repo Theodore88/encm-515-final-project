@@ -3,6 +3,6 @@ Steps to run:
 2. Run everything else normally
 
 Files:
-- simd_kernels.h/c: The actual raw and accelerated implementation
+- simd_acceleration_functions.h/c: The actual raw and accelerated implementation
 - setup.py: To compile the C code
 - ekf_compare.c: The layer between the C and Python code
